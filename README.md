@@ -109,7 +109,7 @@ npm start          # 启动应用
 - 按模块勾选导入：人设 / 关系与白名单 / 账号 / 状态机 / 模型配置 / 行为节，主提示词默认不动、可选导入；
 - 明文密钥直达 SecretStore（`migrated-*` 别名，同值复用），预览与报告不出现明文；
 - 账号自动转移到新剧本（原剧本释放并标记 Idle，转移失败整体回滚）；旧版配置缺失 `useForMain` 时自动标记主叙事；
-- 仅迁移配置，不迁移插件版数据库；新剧本以 paused 相位就绪，检查后一键开演。
+- 可选「剧本数据库」模块：把插件版 koishi.db **整库替换**进新剧本（聊天记录、事实、记忆、参与者、Koishi 用户/绑定全部迁移；探测到的库有未合并 WAL 时会提示先关闭插件版实例）；新剧本以 paused 相位就绪，检查后一键开演。
 
 ## 使用要点
 
@@ -152,3 +152,5 @@ typ0 依赖 HDSI 插件的写作与结构化输出能力；自动推进适合叙
 ## 许可证
 
 [AGPL-3.0](LICENSE)。`desktop/vendor/` 内的 `koishi-plugin-hds-interlude` 同为 AGPL-3.0（上游：[HDS-Interlude](https://gitee.com/MomoiCore/HDS-Interlude)）。SnowLuma **不在本仓库分发范围内**（见上文边界说明）。
+
+应用图标（☕）基于 [Twemoji](https://github.com/twitter/twemoji) 的 2615（hot beverage）图形，依 [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) 使用；再生成脚本见 `desktop/scripts/make-icon.cjs`。

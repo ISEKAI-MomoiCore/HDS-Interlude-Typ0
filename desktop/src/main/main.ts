@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, safeStorage, session, shell } from 'electron'
-import { existsSync, mkdtempSync, readFileSync , writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync , writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { createHash , randomBytes } from 'node:crypto'
 import path from 'node:path'
@@ -62,6 +62,20 @@ if (SELF_TEST) {
   selfTestRoot = mkdtempSync(path.join(os.tmpdir(), 'typ0-self-test-'))
   app.setPath('userData', selfTestRoot)
   dataRoot = selfTestRoot
+}
+// Portable 发行目标（electron-builder portable）：数据随 exe 目录走，保持真正
+// 便携——同时把 Chromium userData 一并重定向，避免向 %APPDATA% 写缓存/配置，
+// 让 typ0-data/ 成为唯一自包含目录（整体拷贝即备份）。只读介质等失败场景回
+// 落默认 userData，不阻断启动。
+const PORTABLE_DATA_DIR = app.isPackaged && process.env.PORTABLE_EXECUTABLE_DIR
+  ? path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'typ0-data')
+  : ''
+if (!SELF_TEST && PORTABLE_DATA_DIR) {
+  try {
+    mkdirSync(PORTABLE_DATA_DIR, { recursive: true })
+    app.setPath('userData', PORTABLE_DATA_DIR)
+    dataRoot = PORTABLE_DATA_DIR
+  } catch { /* 回落默认 userData */ }
 }
 let hostLock: HostLock | undefined
 /** D3-4：在途投递计数，关闭时排空等待。 */
@@ -476,7 +490,9 @@ function createWindow() {
     width: 1440,
     height: 860,
     backgroundColor: '#0f1216',
-    title: 'HDSI Desktop — typ-0 多剧场',
+    title: 'HDS-Interlude Typ0',
+    // ☕ 应用图标（Twemoji 2615，CC-BY 4.0）：开发态指 build/；打包态用 exe 内嵌图标
+    ...(existsSync(path.join(appRoot, 'build', 'icon.ico')) ? { icon: path.join(appRoot, 'build', 'icon.ico') } : {}),
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.js'),
       contextIsolation: true,
@@ -523,7 +539,7 @@ function createWindow() {
 function initializeRuntime() {
   // 开发期沿用 desktop/stories；打包后迁移到 userData，绝不写入安装目录或 asar。
   // 自检冒烟模式：保持模块顶已指向的临时目录（隔离优先于开发期路径规则）。
-  if (!selfTestRoot) dataRoot = app.isPackaged ? app.getPath('userData') : appRoot
+  if (!selfTestRoot) dataRoot = PORTABLE_DATA_DIR || (app.isPackaged ? app.getPath('userData') : appRoot)
   storiesRoot = path.join(dataRoot, 'stories')
   themePacks = new ThemePackStore(dataRoot, () => window)
   // 本地开发/测试环境不依赖 Electron safeStorage：开发数据可能来自另一台机器，

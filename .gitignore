@@ -21,6 +21,10 @@ desktop/onebot-token
 # npm 是唯一包管理工作流；历史遗留的 yarn.lock 不入库
 desktop/yarn.lock
 
+# electron-builder 输出与图标中间产物（icon.ico/icon.png/twemoji svg 为打包资源，保留入库）
+desktop/release/
+desktop/build/icon-png/
+
 # ── 本地临时文件 ──
 *.log
 .typ-0-runtime-tests.cjs

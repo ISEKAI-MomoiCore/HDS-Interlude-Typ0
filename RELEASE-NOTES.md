@@ -5,7 +5,9 @@
 ## 0.0.1-m4 变更摘要（2026-10-19）
 
 - **主题系统补全**：主题包作者指南（`THEME-PACK-AUTHOR-GUIDE.md`）、`theme.schema.v3.json`（draft-07）、导入前结构化诊断（errors/warnings + 逐条 hint）、预览与失败包可视化；L0–L3 开放，L4/L5 沙箱层不开放（CSP 边界见下）。
-- **「从 koishi.yml 导入 HDSI 配置」**：连接页一键导入插件版配置（人设/关系/账号/状态机/模型配置 + 可选主提示词 + 行为节）；密钥迁移进 SecretStore（`migrated-*` 别名，值同复用）；账号跨剧本自动转移（占用方卸载、转移失败回滚）；旧版配置无 `useForMain` 时自动标记主叙事；支持删除既有剧本选项。仅配置导入，不迁移数据库。
+- **「从 koishi.yml 导入 HDSI 配置」**：连接页一键导入插件版配置（人设/关系/账号/状态机/模型配置 + 可选主提示词 + 行为节）；密钥迁移进 SecretStore（`migrated-*` 别名，值同复用）；账号跨剧本自动转移（占用方卸载、转移失败回滚）；旧版配置无 `useForMain` 时自动标记主叙事；支持删除既有剧本选项。
+- **剧本数据库整库导入**：向导新增「剧本数据库」模块——按 yml 内 `database-sqlite` 路径探测插件版 koishi.db，文件级替换为新剧本的 `data/hdsi.db`（两边同为 rc57 插件 schema，无需转译；db+wal+shm 三件套随迁，AUTOINCREMENT 与行 id 保真）。预览仅显示表级计数；库内 story 账号与导入账号不一致时给警告；analytics 等无关表原样保留。
+- **应用图标 ☕**：基于 Twemoji 2615（CC-BY 4.0，README 署名），窗口/任务栏/安装包统一（`desktop/scripts/make-icon.cjs` 再生成）。
 - **可用性修复批（2026-10-19 五联修）**：就绪检查 needs-reload 提供「重载 Worker」（真正 unload→load，不再对运行中 worker 做幂等 no-op 假装修复）；新增「运行相位」检查（暂停/静音 warn + 一键切回运行）；`window.prompt` 全量替换为宿主输入对话框（Electron 渲染层不渲染原生 prompt，此前删除剧本/创建分支/自定义时间范围/导入剧本目录五个流程静默失效）；NOW 播放头几何改为 ResizeObserver 重测（HUD↔Timeline 切换后不再出现半截竖线）；账号卡网格 `min-width:0` 稳定化（长 endpoint URL 不再把轨道撑爆、缩放不再乱跳）。
 - **界面细节**：诊断日志等级筛选改为普通单选下拉（全部/仅 debug/info 及以上/warn 及以上/仅 error，选中即生效）；时间尺度旋钮拖拽方向修正为旋钮惯例（上拉顺时针=范围增大）；连接页/配置页多处滚动截断修复。
 - **仓库化**：插件 tgz 入 `desktop/vendor/`（哈希不变，见 `PROVENANCE.md`）；AGPL-3.0 LICENSE；文档归档 `docs/design/` 与 `docs/history/`；版本统一 `0.0.1-m4`。

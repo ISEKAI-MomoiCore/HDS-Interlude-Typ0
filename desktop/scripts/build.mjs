@@ -22,7 +22,7 @@ for (const entry of ['src/main/main.ts']) {
     bundle: true,
     platform: 'node',
     format: 'cjs',
-    external: ['electron', 'koishi', 'koishi-plugin-*'],
+    external: ['electron', 'koishi', 'koishi-plugin-*', '@minatojs/sql.js'],  // sql.js 外置：wasm 按 locateFile 从 node_modules 取，不进 bundle
     // 性能审计：inline sourcemap 占 dist/main/main.js 的 73%（1.5MB base64）——
     // 外置 .map 文件（主进程加载不受影响，排障时同目录可查）。
     sourcemap: true,

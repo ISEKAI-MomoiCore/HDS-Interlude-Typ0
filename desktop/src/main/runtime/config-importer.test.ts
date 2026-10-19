@@ -175,7 +175,7 @@ function makeHarness(): Harness {
   return state
 }
 
-const allModules = { persona: true, relations: true, accounts: true, model: true, behavior: true, mainPrompt: false, misc: true }
+const allModules = { persona: true, relations: true, accounts: true, model: true, behavior: true, mainPrompt: false, misc: true, database: false }
 
 test('analyze：模块检测/脱敏/警告', () => {
   const result = analyzeKoishiYml(SOURCE_YML)
@@ -393,4 +393,87 @@ test('analyze：非插件版文件明确报错', () => {
   const missing = analyzeKoishiYml('plugins:\n  puppeteer:x: {}\n')
   assert.equal(missing.ok, false)
   if (!missing.ok) assert.match(missing.error, /hds-interlude/)
+})
+
+
+// ── 剧本数据库模块（m4：文件级整库替换） ─────────────────────────────────
+
+function makeSourceDb(root: string, selfIds: string[]): { ymlDir: string, dbPath: string } {
+  const ymlDir = path.join(root, 'source-instance')
+  mkdirSync(path.join(ymlDir, 'data'), { recursive: true })
+  const dbPath = path.join(ymlDir, 'data', 'koishi.db')
+  writeFileSync(dbPath, Buffer.from('SQLite-format-sample-' + Date.now()))
+  writeFileSync(dbPath + '-wal', Buffer.from('wal-bytes'))
+  writeFileSync(dbPath + '-shm', Buffer.from('shm-bytes'))
+  return { ymlDir, dbPath }
+}
+
+test('execute：数据库整库替换（db+wal+shm 三件套 + 报告）', async () => {
+  const harness = makeHarness()
+  const analyzed = analyzeKoishiYml(SOURCE_YML)
+  if (!analyzed.ok) assert.fail()
+  const { ymlDir, dbPath } = makeSourceDb(path.dirname(harness.deps.storiesRoot), ['10001'])
+  analyzed.source.ymlDir = ymlDir
+  analyzed.source.database = { path: dbPath, selfIds: ['10001'], counts: { story: 1, script_entry: 6, fact: 1, intent: 1, scene: 1, participant: 1, user: 281, binding: 281 }, walActive: false }
+  const result = await executeImport(harness.deps, analyzed.source, { modules: { ...allModules, database: true } })
+  const data = path.join(harness.storyDir, 'data', 'hdsi.db')
+  assert.equal(existsSync(data), true, '目标剧本必须有 data/hdsi.db')
+  assert.equal(existsSync(data + '-wal'), true, 'WAL 必须随库复制')
+  assert.equal(existsSync(data + '-shm'), true, 'SHM 必须随库复制')
+  assert.deepEqual(readFileSync(data), readFileSync(dbPath), '主库文件必须逐字节一致')
+  const dbReport = result.report.find(item => item.module === '剧本数据库')
+  assert.equal(dbReport?.status, 'ok')
+  assert.match(dbReport?.detail ?? '', /剧本 1/)
+  assert.match(dbReport?.detail ?? '', /281\/281/)
+  // selfId 一致（10001）不得触发不连续警告
+  assert.doesNotMatch(dbReport?.detail ?? '', /不连续/)
+})
+
+test('execute：数据库身份不匹配 → 报告警告（不中断）', async () => {
+  const harness = makeHarness()
+  const analyzed = analyzeKoishiYml(SOURCE_YML)
+  if (!analyzed.ok) assert.fail()
+  const { ymlDir, dbPath } = makeSourceDb(path.dirname(harness.deps.storiesRoot), ['99999'])
+  analyzed.source.ymlDir = ymlDir
+  analyzed.source.database = { path: dbPath, selfIds: ['99999'], counts: { story: 1 }, walActive: false }
+  const result = await executeImport(harness.deps, analyzed.source, { modules: { ...allModules, database: true } })
+  const dbReport = result.report.find(item => item.module === '剧本数据库')
+  assert.equal(dbReport?.status, 'warning')
+  assert.match(dbReport?.detail ?? '', /99999.*不连续|不连续.*99999/)
+  assert.equal(existsSync(path.join(harness.storyDir, 'data', 'hdsi.db')), true, '警告不阻断复制')
+})
+
+test('execute：未探测到数据库 → 模块跳过', async () => {
+  const harness = makeHarness()
+  const analyzed = analyzeKoishiYml(SOURCE_YML)
+  if (!analyzed.ok) assert.fail()
+  const result = await executeImport(harness.deps, analyzed.source, { modules: { ...allModules, database: true } })
+  const dbReport = result.report.find(item => item.module === '剧本数据库')
+  assert.equal(dbReport?.status, 'skipped')
+  assert.equal(existsSync(path.join(harness.storyDir, 'data')), false)
+})
+
+test('execute：数据库复制失败 → 整剧本回滚', async () => {
+  const harness = makeHarness()
+  const analyzed = analyzeKoishiYml(SOURCE_YML)
+  if (!analyzed.ok) assert.fail()
+  const root = path.dirname(harness.deps.storiesRoot)
+  // path 指向目录：existsSync 为真但 copyFileSync 抛错 → 走既有回滚链
+  const trap = path.join(root, 'dir-trap')
+  mkdirSync(trap, { recursive: true })
+  analyzed.source.ymlDir = root
+  analyzed.source.database = { path: trap, selfIds: ['10001'], counts: {}, walActive: false }
+  await assert.rejects(() => executeImport(harness.deps, analyzed.source, { modules: { ...allModules, database: true } }))
+  assert.equal(existsSync(harness.storyDir), false, '回滚必须删除刚创建的剧本目录')
+})
+
+test('analyze：database-sqlite 相对路径解析（含默认值）', () => {
+  const withSqlite = SOURCE_YML.replace('plugins:', 'plugins:\n  database-sqlite:t1:\n    path: custom/dir/my.db')
+  const parsed = analyzeKoishiYml(withSqlite)
+  assert.equal(parsed.ok, true)
+  if (parsed.ok) assert.equal(parsed.analysis.modules.database.relativePath, 'custom/dir/my.db')
+  const base = analyzeKoishiYml(SOURCE_YML)
+  if (!base.ok) assert.fail()
+  assert.equal(base.analysis.modules.database.configured, false)
+  assert.equal(base.analysis.modules.database.relativePath, 'data/koishi.db')
 })

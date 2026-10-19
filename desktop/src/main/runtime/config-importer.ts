@@ -1,23 +1,27 @@
 /**
- * 插件版 Koishi 配置 → typ0 剧本配置的导入器（仅配置，不迁数据库）。
+ * 插件版 Koishi 配置 → typ0 剧本配置的导入器（配置节级搬运 + 可选整库导入）。
  *
  * 源形态：插件版 koishi.yml 的 plugins 段（hds-interlude:* 配置节 + 真实
  * adapter-onebot:* 上游实例）。目标形态：typ0 三层——每故事 canonical
  * koishi.yml（adapter 固定连内部桥）、宿主账号登记表、$secret: 密钥库。
  *
- * 两处实质转换（其余为节级搬运）：
+ * 三处实质转换（其余为节级搬运）：
  *  1. 密钥：插件版明文 apiKey/token → SecretStore 别名 + `$secret:` 引用
  *     （mediator 硬拒绝明文敏感键，别名必须先落库再保存）。
  *  2. adapter：源 adapter 绝不写进剧本（编译期会被桥接注入覆盖）；正向 WS
  *     实例转成账号登记（externalUpstream），反向 WS 明确拒绝自动绑定。
+ *  3. 数据库（m4 可选模块）：插件版 koishi.db 整库文件级替换为新剧本的
+ *     data/hdsi.db——两边同为 rc57 插件 schema，无需转译（见 koishi-db-import.ts）。
  */
 import { randomUUID } from 'node:crypto'
-import { rmSync } from 'node:fs'
+import { existsSync, rmSync } from 'node:fs'
+import path from 'node:path'
 import yaml from 'js-yaml'
 import type { AccountRegistry } from './account-registry'
 import type { BindingRegistry } from './bindings'
 import type { SecretStore } from './secrets'
 import type { StoryConfigMediator } from './config-mediator'
+import { copyKoishiDb } from './koishi-db-import'
 
 /** 状态机/运行行为节（【节奏/内在/表达/扩展】全家桶）。 */
 export const BEHAVIOR_KEYS = [
@@ -34,10 +38,20 @@ export interface ImportModules {
   behavior: boolean
   mainPrompt: boolean
   misc: boolean
+  database: boolean
 }
 
 export interface ImportSource {
   file: string
+  /** koishi.yml 所在目录（主进程内部；execute 时解析数据库绝对路径用）。 */
+  ymlDir?: string
+  /** 源 koishi.db（主进程内部；pickAnalyze 探测后由 IPC 层注入）。 */
+  database?: {
+    path: string
+    selfIds: string[]
+    counts: Record<string, number>
+    walActive: boolean
+  }
   hdsiKey: string
   hdsi: Record<string, unknown>
   adapters: Array<{ selfId: string, protocol: string, endpoint: string, token: string, reverse: boolean }>
@@ -53,6 +67,19 @@ export interface ImportAnalysis {
     behavior: Array<{ key: BehaviorKey, present: true, enabled: boolean | null }>
     mainPrompt: { present: boolean }
     misc: { blindMode: boolean, logging: boolean }
+    /** 数据库模块：analyze 只填 configured/relativePath（纯函数无 IO），
+     *  IPC 层探测磁盘后改写为完整形态（found/sizeBytes/counts/…）。 */
+    database: {
+      configured: boolean
+      relativePath: string
+      found?: boolean
+      sizeBytes?: number
+      interludeTables?: number
+      counts?: Record<string, number>
+      storySelfIds?: string[]
+      walActive?: boolean
+      error?: string
+    }
   }
   warnings: string[]
 }
@@ -128,6 +155,10 @@ export function analyzeKoishiYml(source: string): { ok: true, analysis: ImportAn
     else if (!adapter.endpoint || !adapter.selfId) warnings.push(`adapter 实例 ${adapter.selfId || '?'} 缺少 selfId 或端点，跳过绑定。`)
   }
 
+  // database-sqlite 的库文件相对路径（IPC 层据此探测磁盘上的 koishi.db）。
+  const sqliteEntry = findPluginConfigs(plugins, key => /^database-sqlite:/.test(key))[0]
+  const sqliteRelativePath = text(sqliteEntry?.config.path).trim() || 'data/koishi.db'
+
   const onebot = isRecord(hdsi.onebot) ? hdsi.onebot : {}
   const model = isRecord(hdsi.model) ? hdsi.model : {}
   const providers = Array.isArray(model.providers) ? model.providers.filter(isRecord) : []
@@ -168,6 +199,7 @@ export function analyzeKoishiYml(source: string): { ok: true, analysis: ImportAn
         behavior,
         mainPrompt: { present: mainPromptPresent },
         misc: { blindMode: hdsi.blindMode !== undefined, logging: hdsi.logging !== undefined },
+        database: { configured: sqliteEntry !== undefined, relativePath: sqliteRelativePath },
       },
       warnings,
     },
@@ -344,6 +376,34 @@ export async function executeImport(deps: ImporterDeps, source: ImportSource, op
     for (const skipped of ['presetSync', 'sharedStory'] as const) {
       if (hdsiSource[skipped] !== undefined) report.push({ module: skipped, status: 'skipped', detail: '经 Koishi Console 管理，不随导入' })
     }
+
+    // ── 剧本数据库（文件级整库替换：两边同为 rc57 插件 schema，逐字节保真）──
+    if (options.modules.database) {
+      const dbPath = source.ymlDir ? path.resolve(source.ymlDir, source.database?.path ?? '') : source.database?.path
+      if (dbPath && source.database && existsSync(dbPath)) {
+        const { bytes } = copyKoishiDb(dbPath, meta.dir)
+        const counts = source.database.counts ?? {}
+        const dbSelfIds = source.database.selfIds ?? []
+        const sizeLabel = bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
+        let dbStatus: 'ok' | 'warning' = 'ok'
+        const notes: string[] = []
+        if (dbSelfIds.length > 1) notes.push(`库内有 ${dbSelfIds.length} 个剧本（typ0 单剧本承载主剧本，其余仅随库存档）`)
+        if (account?.selfId && dbSelfIds.length === 1 && dbSelfIds[0] !== account.selfId) {
+          dbStatus = 'warning'
+          notes.push(`库属于账号 ${dbSelfIds[0]}，本次绑定的账号是 ${account.selfId}——剧情与该账号的对话历史将不连续`)
+        } else if (!account?.selfId && dbSelfIds.length >= 1 && !options.modules.accounts) {
+          notes.push(`库属于账号 ${dbSelfIds[0]}（本次未导入账号模块，请确认目标剧本绑定同一账号）`)
+        }
+        if (source.database.walActive) notes.push('源库有未合并的 WAL——建议先关闭插件版实例再导入以保证快照一致')
+        report.push({
+          module: '剧本数据库',
+          status: dbStatus,
+          detail: `已整库替换到新剧本（${sizeLabel}）· 剧本 ${counts.story ?? '?'} · 剧本条目 ${counts.script_entry ?? '?'} · 事实 ${counts.fact ?? '?'} · 意图 ${counts.intent ?? '?'} · 场景 ${counts.scene ?? '?'} · 参与者 ${counts.participant ?? '?'} · 用户/绑定 ${counts.user ?? '?'}/${counts.binding ?? '?'}${notes.length ? '；' + notes.join('；') : ''}`,
+        })
+      } else {
+        report.push({ module: '剧本数据库', status: 'skipped', detail: source.database ? '源数据库文件不存在（探测时可见，执行时缺失？）' : '未在 koishi.yml 同目录探测到数据库文件' })
+      }
+    } else report.push({ module: '剧本数据库', status: 'skipped', detail: '未选择' })
 
     deps.config.save(meta.dir, yaml.dump(doc, { lineWidth: 160, noRefs: true }))
     deps.broadcastStoriesChanged()

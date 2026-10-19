@@ -4006,8 +4006,8 @@ function initConfigImport() {
   if (!btn || !dlg || !dlg.showModal || !body || !run) return
   let sessionId = ''
 
-  const moduleRow = (key, title, summary, checked, hint) =>
-    `<label class="import-module"><input type="checkbox" data-module="${key}" ${checked ? 'checked' : ''}><span class="import-module-text"><b>${title}</b><small>${escapeHtml(summary)}</small>${hint ? `<small class="import-module-hint">${escapeHtml(hint)}</small>` : ''}</span></label>`
+  const moduleRow = (key, title, summary, checked, hint, disabled) =>
+    `<label class="import-module" style="${disabled ? 'opacity:.55' : ''}"><input type="checkbox" data-module="${key}" ${checked ? 'checked' : ''}${disabled ? ' disabled' : ''}><span class="import-module-text"><b>${title}</b><small>${escapeHtml(summary)}</small>${hint ? `<small class="import-module-hint">${escapeHtml(hint)}</small>` : ''}</span></label>`
 
   const renderPreview = async analysis => {
     const m = analysis.modules
@@ -4024,6 +4024,17 @@ function initConfigImport() {
       + `<label class="import-module"><input type="checkbox" data-module="accounts" checked><span class="import-module-text"><b>账号</b><small>机器人 ${m.accounts.bots} · adapter ${m.accounts.adapters.length}（可自动绑定 ${m.accounts.bindable}）</small>${accountsDetail}</span></label>`
       + moduleRow('model', '模型配置', `${m.model.providers} 个连接 · 明文密钥 ${m.model.plaintextKeys} 个（自动转入密钥库）`, m.model.providers > 0)
       + moduleRow('behavior', '状态机与运行行为', m.behavior.length ? `${m.behavior.length} 节：${m.behavior.map(item => item.key).join('、')}` : '源配置无行为节', m.behavior.length > 0)
+      + (() => {
+        const db = m.database || {}
+        if (!db.found) return moduleRow('database', '剧本数据库', '未探测到源数据库（按 yml 内 database-sqlite 路径查找）', false, '跳过数据库；仅导入配置', true)
+        const size = db.sizeBytes > 1024 * 1024 ? `${(db.sizeBytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(db.sizeBytes / 1024))} KB`
+        const c = db.counts || {}
+        const hints = []
+        if (db.error) hints.push(`读取统计失败（${db.error}）——仍可尝试整库导入`)
+        if (db.walActive) hints.push('源库有未合并 WAL，建议先关闭插件版实例')
+        if ((db.storySelfIds || []).length > 1) hints.push(`库内有 ${db.storySelfIds.length} 个剧本，以主剧本承载`)
+        return moduleRow('database', '剧本数据库（整库替换）', `${size} · 剧本 ${c.story ?? '?'} · 剧本条目 ${c.script_entry ?? '?'} · 事实 ${c.fact ?? '?'} · 用户/绑定 ${c.user ?? '?'}/${c.binding ?? '?'}`, true, hints.join('；') || '聊天记录、事实与记忆全部随库迁移；analytics 等无关表原样保留')
+      })()
       + moduleRow('mainPrompt', '主提示词覆盖', m.mainPrompt.present ? '源有自定义主提示词' : '源无自定义', false, '默认不导入，保持 typ0 默认提示词')
       + moduleRow('misc', '其他（blindMode / logging）', m.misc.blindMode || m.misc.logging ? [m.misc.blindMode ? 'blindMode' : '', m.misc.logging ? 'logging' : ''].filter(Boolean).join(' · ') : '源配置无对应节', true)
       + `</div>`
@@ -4033,7 +4044,7 @@ function initConfigImport() {
         ? `<div class="import-delete"><b>导入成功后删除现有剧本（可选；删除前自动归档备份）</b>${stories.map(story => `<label class="import-module"><input type="checkbox" data-delete-id="${escapeHtml(story.meta?.id ?? story.id ?? '')}"><span class="import-module-text"><b>${escapeHtml(story.meta?.name ?? story.name ?? story.meta?.id ?? story.id ?? '?')}</b></span></label>`).join('')}</div>`
         : '')
       + `</div>`
-    note.textContent = '只导入配置；插件版的聊天记录与数据库不迁移。'
+    note.textContent = '数据库模块为整库替换：插件版的聊天记录、事实与记忆全部迁入新剧本。'
     run.hidden = false; run.disabled = false; run.textContent = '开始导入'
   }
 
@@ -4046,7 +4057,7 @@ function initConfigImport() {
       + `<div class="pack-preview-block"><b>明细</b><ul class="pack-diag-list">${result.report.map(item => `<li class="${item.status === 'warning' ? 'pack-diag-warn' : ''}" style="${item.status === 'skipped' ? 'opacity:.6' : ''}"><b>${escapeHtml(item.module)}</b> ${escapeHtml(item.detail)}</li>`).join('')}</ul></div>`
       + (result.secrets.length ? `<div class="pack-preview-block"><b>密钥库新增别名</b><ul class="pack-diag-list">${result.secrets.map(alias => `<li><code>${escapeHtml(alias)}</code></li>`).join('')}</ul></div>` : '')
       + (result.account ? `<div class="pack-preview-block"><b>账号</b><ul class="pack-diag-list"><li>${escapeHtml(result.account.selfId)} → ${escapeHtml(result.account.endpoint)}</li></ul></div>` : '')
-    note.textContent = '新剧本未加载；到连接页确认账号在线后再加载 Worker。'
+    note.textContent = '新剧本未加载（paused）；到连接页确认账号与就绪检查后加载 Worker。'
     run.hidden = true
   }
 

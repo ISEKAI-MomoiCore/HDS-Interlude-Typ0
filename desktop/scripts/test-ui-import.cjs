@@ -14,6 +14,7 @@ const ANALYSIS = {
     behavior: [{ key: 'urge', present: true, enabled: true }, { key: 'memory', present: true, enabled: true }],
     mainPrompt: { present: true },
     misc: { blindMode: true, logging: false },
+    database: { configured: true, relativePath: 'data/koishi.db', found: true, sizeBytes: 28_188_672, interludeTables: 21, counts: { story: 1, script_entry: 6, fact: 1, intent: 1, scene: 1, participant: 1, user: 281, binding: 281 }, storySelfIds: ['10001'], walActive: false },
   },
   warnings: ['检测到 2 个明文 API Key：导入时自动转入本机密钥库。'],
 }
@@ -73,7 +74,7 @@ const RESULT = {
     }))
     assert.equal(preview.badge, 'koishi.yml')
     const moduleMap = Object.fromEntries(preview.modules.map(item => [item.key, item.checked]))
-    assert.deepEqual(moduleMap, { persona: true, relations: true, accounts: true, model: true, behavior: true, mainPrompt: false, misc: true }, '默认勾选：主提示词不动，其余全选')
+    assert.deepEqual(moduleMap, { persona: true, relations: true, accounts: true, model: true, behavior: true, mainPrompt: false, misc: true, database: true }, '默认勾选：主提示词不动，其余全选（含数据库）')
     assert.equal(preview.storyName, '迁移角色', '剧本名默认取源角色名')
     assert.ok(preview.warnings.some(text => text.includes('明文')))
     assert.deepEqual(preview.deleteOptions, ['fixture'], '现有剧本列为可选删除项')

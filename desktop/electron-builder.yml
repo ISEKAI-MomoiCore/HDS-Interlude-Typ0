@@ -1,0 +1,36 @@
+# electron-builder 配置（0.0.1-m4 首发：NSIS 安装包 + Portable 双目标）
+# 构建命令：npm run dist（需先 npm run build）
+# 关键决策：
+#  - asar: false —— typ0 用 child_process.fork 起真 node 子进程跑 Koishi worker，
+#    纯 node 读不了 asar 虚拟文件系统；AGPL 开源无藏码需求，关闭 asar 整类规避
+#    worker fork / WASM 资产（@minatojs/sql.js）的 asar 问题。
+#  - 数据库驱动是 WASM（sql.js），无原生模块需要 rebuild。
+#  - portable 目标由 electron-builder 注入 PORTABLE_EXECUTABLE_DIR；主进程据此
+#    把 dataRoot 重定向到 exe 旁的 typ0-data/（见 main.ts）。
+appId: mo.momoicore.hds-interlude-typ0
+productName: HDS-Interlude-Typ0
+copyright: Copyright © 2026 ISEKAI-MomoiCore · AGPL-3.0
+directories:
+  output: release
+  buildResources: build
+asar: false
+files:
+  - dist/**
+  - build/icon.ico
+  - build/twemoji-2615.svg
+  - package.json
+  - "!**/*.map"
+  - "!vendor/**"
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+    - target: portable
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  artifactName: HDS-Interlude-Typ0-Setup-${version}.${ext}
+portable:
+  artifactName: HDS-Interlude-Typ0-Portable-${version}.${ext}

@@ -4,6 +4,7 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { createStoryFolder } from '../stories'
 import { analyzeKoishiYml, executeImport, type ImportModules } from '../runtime/config-importer'
+import { probeKoishiDb } from '../runtime/koishi-db-import'
 import { registerHandle } from './register'
 import type { IpcContext } from './context'
 
@@ -35,6 +36,28 @@ export function registerImporterIpc(ctx: IpcContext) {
     if (!analyzed.ok) throw new Error(analyzed.error)
     analyzed.analysis.file = path.basename(picked.filePaths[0])
     analyzed.source.file = analyzed.analysis.file
+    // 数据库探测（m4）：按 yml 的 database-sqlite 相对路径找 koishi.db，
+    // 只读统计表级计数——analysis 下发脱敏结果，明细留在主进程 source。
+    analyzed.source.ymlDir = path.dirname(picked.filePaths[0])
+    const dbAbsPath = path.resolve(analyzed.source.ymlDir, analyzed.analysis.modules.database.relativePath)
+    const probe = await probeKoishiDb(dbAbsPath)
+    if (probe.found) {
+      analyzed.analysis.modules.database = {
+        ...analyzed.analysis.modules.database,
+        found: true,
+        ...(probe.sizeBytes !== undefined ? { sizeBytes: probe.sizeBytes } : {}),
+        ...(probe.interludeTables !== undefined ? { interludeTables: probe.interludeTables } : {}),
+        ...(probe.counts ? { counts: probe.counts } : {}),
+        ...(probe.storySelfIds ? { storySelfIds: probe.storySelfIds } : {}),
+        walActive: Boolean(probe.walActive),
+        ...(probe.error ? { error: probe.error } : {}),
+      }
+      if (!probe.error) {
+        analyzed.source.database = { path: dbAbsPath, selfIds: probe.storySelfIds ?? [], counts: probe.counts ?? {}, walActive: Boolean(probe.walActive) }
+        if (probe.walActive) analyzed.analysis.warnings.push('源数据库存在未合并的 WAL（插件版实例可能正在运行）——建议先关闭插件版实例再导入，保证快照一致。')
+        if ((probe.storySelfIds ?? []).length > 1) analyzed.analysis.warnings.push(`源数据库内有 ${(probe.storySelfIds ?? []).length} 个剧本；typ0 单剧本模型将整库导入并以主剧本承载。`)
+      }
+    } else analyzed.analysis.modules.database = { ...analyzed.analysis.modules.database, found: false }
     session = { id: randomUUID(), at: Date.now(), parsed: analyzed }
     return { sessionId: session.id, analysis: analyzed.analysis }
   })
@@ -52,6 +75,8 @@ export function registerImporterIpc(ctx: IpcContext) {
       // 主提示词独立可选块：默认不动（保持 typ0 默认提示词）。
       mainPrompt: request.modules?.mainPrompt === true,
       misc: request.modules?.misc !== false,
+      // 剧本数据库：探测到源库时默认导入（渲染层未找到时不可勾选）。
+      database: request.modules?.database !== false,
     }
     const storyName = typeof request.storyName === 'string' ? request.storyName.trim().slice(0, 64) : ''
     const result = await executeImport({
