@@ -1,0 +1,27 @@
+/* Component seams: closed cards, single-owner interior lines; no global frame reset. */
+html[data-hdsi-theme] .inspect-grid,
+html[data-hdsi-theme] .inspector-content .inspect-grid { gap:1px; background:var(--hdsi-color-border); }
+html[data-hdsi-theme] .inspect-grid > div { border:0; background:var(--hdsi-color-surface); }
+html[data-hdsi-theme="default"] .context-inspector-section .inspect-grid > div { background:var(--kiy-panel); }
+html[data-hdsi-theme] .inspect-grid > div:last-child:nth-child(odd) { grid-column:1 / -1; }
+/* Tabs own one underline; children do not draw a second edge against the frame. */
+html[data-hdsi-theme] :is(.detail-tabs,.config-tabs) > button:last-of-type { border-right:0; }
+html[data-hdsi-theme] .theme-seg > button { box-shadow:none; }
+html[data-hdsi-theme] .theme-seg > button:focus-visible { outline-offset:-3px; }
+html[data-hdsi-theme] .wiz-token-choice { display:flex; align-items:flex-start; gap:10px; margin:10px 0 14px; font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+html[data-hdsi-theme] .wiz-token-choice[hidden] { display:none; }
+html[data-hdsi-theme] .wiz-token-choice > input { flex:none; width:16px; height:16px; min-height:0; margin:2px 0 0; padding:0; }
+html[data-hdsi-theme] .wiz-probe { align-items:center; flex-wrap:wrap; }
+html[data-hdsi-theme] #wiz-probe-result { min-width:0; overflow-wrap:anywhere; line-height:1.65; }
+html[data-hdsi-theme] .connect-card { min-width:0; overflow-wrap:anywhere; }
+
+html[data-hdsi-theme] .account-wizard .wiz-token-sources { display:grid; gap:10px; }
+html[data-hdsi-theme] .account-wizard .wiz-token-choice { margin:0; }
+html[data-hdsi-theme] .account-wizard .wiz-probe { border-bottom:0; }
+
+/* Structural frames must survive switching away from the default palette. */
+:where(html[data-hdsi-theme]) :is(.account-registry,.connect-config-card) { border:1px solid var(--hdsi-color-border); background:var(--hdsi-color-surface); }
+
+/* Status-only notifications must neither intercept clicks nor cover dialog actions. */
+#toast-container, .toast { pointer-events:none; }
+dialog[open] > .toast { position:relative; bottom:auto; right:auto; max-width:none; margin:0 20px 16px; overflow-wrap:anywhere; }

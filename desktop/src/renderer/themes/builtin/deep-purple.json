@@ -1,0 +1,227 @@
+{
+  "preview": "./previews/deep-purple.png",
+  "animation": {
+    "defaultDuration": "normal",
+    "speed": "normal",
+    "duration": {
+      "normal": "200ms",
+      "instant": "0ms",
+      "slow": "300ms",
+      "slower": "400ms",
+      "fast": "150ms"
+    },
+    "easing": {
+      "ease": "ease",
+      "easeInOut": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "bounce": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)",
+      "easeIn": "cubic-bezier(0.4, 0, 1, 1)",
+      "linear": "linear"
+    },
+    "defaultEasing": "easeOut",
+    "enabled": true
+  },
+  "components": {
+    "clip": {
+      "padding": "sm",
+      "borderRadius": "medium",
+      "borderWidth": "thin",
+      "shadow": "medium"
+    },
+    "card": {
+      "padding": "lg",
+      "borderRadius": "large",
+      "borderWidth": "thin",
+      "shadow": "medium"
+    },
+    "track": {
+      "height": "32px",
+      "separatorWidth": "1px",
+      "borderRadius": "small",
+      "shadow": "small"
+    },
+    "button": {
+      "shadow": "medium",
+      "hoverTransform": "translateY(-1px)",
+      "paddingX": {
+        "md": "12px",
+        "sm": "8px",
+        "lg": "16px"
+      },
+      "borderRadius": "medium",
+      "height": {
+        "md": "28px",
+        "sm": "24px",
+        "lg": "32px"
+      },
+      "textTransform": "none",
+      "fontWeight": "medium"
+    },
+    "panel": {
+      "padding": "md",
+      "backdropBlur": "0px",
+      "borderRadius": "medium",
+      "shadow": "small"
+    },
+    "input": {
+      "height": "28px",
+      "borderWidth": "thin",
+      "borderRadius": "medium",
+      "paddingX": "10px",
+      "fontSize": "base"
+    }
+  },
+  "version": "2.0.0",
+  "category": "color",
+  "author": "HDSI Team",
+  "colors": {
+    "text": {
+      "secondary": "#c4c4d4",
+      "primary": "#f0f0f5",
+      "tertiary": "#9090a8",
+      "muted": "#6b6b7f"
+    },
+    "status": {
+      "info": "#06b6d4",
+      "warning": "#f59e0b",
+      "error": "#ef4444",
+      "success": "#10b981"
+    },
+    "tracks": {
+      "state": [
+        "#10b981",
+        "#34d399"
+      ],
+      "send": [
+        "#a855f7",
+        "#c084fc"
+      ],
+      "media": [
+        "#f59e0b",
+        "#fbbf24"
+      ],
+      "script": [
+        "#ff6b35",
+        "#ff8c61"
+      ],
+      "receive": [
+        "#3b82f6",
+        "#60a5fa"
+      ],
+      "alter": [
+        "#ec4899",
+        "#f472b6"
+      ]
+    },
+    "background": {
+      "elevated": "#2d2639",
+      "canvas": "#1a1625",
+      "surface": "#221d2e",
+      "highlight": "#3f3851",
+      "panel": "#352f43"
+    },
+    "accent": {
+      "secondary": "#a855f7",
+      "primary": "#ff6b35",
+      "tertiary": "#3b82f6"
+    }
+  },
+  "effects": {
+    "glowIntensity": 0.3,
+    "shadows": {
+      "xlarge": "0 8px 16px rgba(0,0,0,0.3), 0 16px 48px rgba(0,0,0,0.25)",
+      "minimal": "0 1px 2px rgba(0,0,0,0.1)",
+      "small": "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
+      "large": "0 4px 8px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.2)",
+      "none": "none",
+      "medium": "0 2px 4px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.15)"
+    },
+    "opacity": {
+      "normal": 1.0,
+      "disabled": 0.5,
+      "muted": 0.7
+    },
+    "glowColors": {
+      "subtle": "0 0 10px rgba(255,107,53,0.3), 0 0 20px rgba(255,107,53,0.15)",
+      "accent": "0 0 20px rgba(255,107,53,0.4), 0 0 40px rgba(255,107,53,0.2)"
+    },
+    "gradientAngle": "135deg",
+    "gradientsEnabled": true,
+    "backdropBlur": "0px",
+    "shadowStyle": "medium",
+    "glowEnabled": true,
+    "gradientStops": 2
+  },
+  "typography": {
+    "fontFamily": {
+      "mono": "JetBrains Mono, Consolas, 'Courier New', monospace",
+      "ui": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "display": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    },
+    "letterSpacing": {
+      "normal": "0",
+      "tight": "-0.01em",
+      "wide": "0.02em"
+    },
+    "fontSize": {
+      "md": "14px",
+      "xl": "18px",
+      "xs": "11px",
+      "base": "13px",
+      "lg": "16px",
+      "sm": "12px"
+    },
+    "fontWeight": {
+      "bold": 700,
+      "normal": 400,
+      "semibold": 600,
+      "medium": 500
+    }
+  },
+  "presets": {
+    "animationLevel": "normal",
+    "densityPreset": "standard",
+    "visualStyle": "gradient"
+  },
+  "id": "deep-purple",
+  "spacing": {
+    "scale": 1.0,
+    "values": {
+      "md": "12px",
+      "2xl": "32px",
+      "xl": "24px",
+      "xs": "4px",
+      "3xl": "40px",
+      "lg": "16px",
+      "sm": "8px"
+    },
+    "base": 8,
+    "lineHeight": {
+      "normal": 1.5,
+      "tight": 1.25,
+      "relaxed": 1.75
+    },
+    "density": "standard"
+  },
+  "description": "FL Studio 经典配色，适合长时间工作",
+  "geometry": {
+    "outlineStyle": "solid",
+    "style": "rounded",
+    "borderRadius": {
+      "xlarge": "16px",
+      "minimal": "2px",
+      "small": "4px",
+      "large": "12px",
+      "full": "999px",
+      "none": "0px",
+      "medium": "8px"
+    },
+    "borderWidth": {
+      "thin": "1px",
+      "normal": "1px",
+      "thick": "2px"
+    }
+  },
+  "name": "Deep Purple",
+  "colorScheme": "dark"
+}

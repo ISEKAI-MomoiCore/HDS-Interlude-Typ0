@@ -1,0 +1,198 @@
+/* Role hierarchy shared by every palette/profile. Deliberately no theme colors.
+   This final layer owns type, spacing and task-specific composition only. */
+:root {
+  --ui-title:18px; --ui-body:max(13px,var(--hdsi-size-body));
+  --ui-reading:max(14px,var(--hdsi-size-body)); --ui-meta:max(11px,var(--hdsi-size-small));
+  --ui-label:max(12px,var(--hdsi-size-small));
+  --ui-space-1:4px; --ui-space-2:8px; --ui-space-3:12px; --ui-space-4:20px; --ui-space-5:28px;
+}
+html[data-hdsi-theme] .workspace-header { height:auto; min-height:56px; gap:16px; padding:10px 20px; flex:none; }
+html[data-hdsi-theme] #studio-surface .workspace-header > div:first-child { display:flex; align-items:baseline; gap:10px; }
+html[data-hdsi-theme] #studio-surface .workspace-header > div:first-child::before { content:none; }
+html[data-hdsi-theme] .workspace-header strong,
+html[data-hdsi-theme] #studio-surface .workspace-header strong { font:550 var(--ui-title)/1.35 var(--hdsi-font-ui); letter-spacing:.02em; }
+html[data-hdsi-theme] .workspace-header span,
+html[data-hdsi-theme] #studio-surface .workspace-header span { font-size:var(--ui-meta); }
+html[data-hdsi-theme] .workspace-actions { gap:8px; flex-wrap:wrap; }
+html[data-hdsi-theme] #studio-surface.timeline-hidden :is(.studio-view-switch,.time-presets,.timeline-window-label) { display:none; }
+html[data-hdsi-theme] .browser-item { font-family:var(--hdsi-font-ui); font-size:var(--ui-label); }
+html[data-hdsi-theme] .browser-item small { font:10px var(--hdsi-font-mono); }
+html[data-hdsi-theme] :is(button,input,select,textarea):focus-visible,
+html[data-hdsi-theme] .session-clip:focus-visible { outline:2px solid var(--hdsi-color-accent); outline-offset:2px; }
+
+/* Overview keeps the shared rails and their navigation geometry. */
+html[data-hdsi-theme] .studio-hud-signals { gap:0; margin-bottom:20px; border-bottom:1px solid var(--hdsi-color-border); }
+html[data-hdsi-theme] .studio-hud-signal { min-height:58px; padding:8px 12px 12px; border:0; border-right:1px solid var(--hdsi-color-border-soft); background:transparent; }
+html[data-hdsi-theme] .studio-hud-signal:last-child { border-right:0; }
+html[data-hdsi-theme] .studio-hud-signal::after { content:none; }
+html[data-hdsi-theme] .studio-hud-signal small { font:var(--ui-meta)/1.4 var(--hdsi-font-ui); letter-spacing:0; }
+html[data-hdsi-theme] .studio-hud-signal small em { font:10px/1.4 var(--hdsi-font-mono); }
+html[data-hdsi-theme] .studio-hud-signal strong { font:550 var(--ui-body)/1.5 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .studio-hud-signal span { font-size:var(--ui-meta); }
+html[data-hdsi-theme] .studio-hud-context { grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr); gap:24px; }
+html[data-hdsi-theme] .studio-hud-lower { gap:24px; margin-top:28px; }
+html[data-hdsi-theme] .studio-hud-card { padding-top:12px; border-top-color:var(--hdsi-color-border-soft); }
+html[data-hdsi-theme] .studio-hud-card h3 { margin:0 0 12px; font:550 var(--ui-body)/1.5 var(--hdsi-font-ui); letter-spacing:0; }
+html[data-hdsi-theme] .studio-hud-card h3::after { content:none; }
+html[data-hdsi-theme] .studio-hud-card h3 span { font:10px/1.4 var(--hdsi-font-mono); }
+html[data-hdsi-theme] .studio-hud-item { padding:9px 4px; gap:10px; }
+html[data-hdsi-theme] .studio-hud-item time { font-size:var(--ui-meta); width:40px; }
+html[data-hdsi-theme] .hud-item-body { gap:4px; white-space:normal; }
+html[data-hdsi-theme] .hud-item-body b { font-size:var(--ui-label); }
+html[data-hdsi-theme] .hud-item-body strong { font:400 var(--ui-body)/1.7 var(--hdsi-font-ui); white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+html[data-hdsi-theme] .hud-item-body small { font:var(--ui-meta)/1.5 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .studio-hud-item.hud-scene { min-height:200px; height:auto; padding:20px; align-items:flex-start; }
+html[data-hdsi-theme] .hud-scene-copy { gap:12px; white-space:normal; }
+html[data-hdsi-theme] .hud-scene-copy strong { font:550 21px/1.55 var(--hdsi-font-ui); white-space:normal; max-width:none; }
+html[data-hdsi-theme] .hud-scene-copy em { font:400 var(--ui-reading)/1.8 var(--hdsi-font-ui); white-space:normal; max-width:none; }
+html[data-hdsi-theme] .hud-scene-copy :is(small,i) { font:var(--ui-meta)/1.5 var(--hdsi-font-ui); letter-spacing:0; }
+html[data-hdsi-theme] :is(.hud-index,.hud-activity-icon) { border:0; font-size:var(--ui-meta); }
+html[data-hdsi-theme] .hud-card-link { font:var(--ui-label)/1.5 var(--hdsi-font-ui); padding:8px 0; }
+html[data-hdsi-theme] .hud-preplan b { font-size:var(--ui-label); }
+html[data-hdsi-theme] .hud-preplan small { font:var(--ui-meta)/1.5 var(--hdsi-font-ui); }
+
+/* Session: full prose instead of a clipped 300-character preview. */
+html[data-hdsi-theme] .session-grid { padding:20px clamp(16px,4vw,56px) 40px; gap:24px; border:0; }
+html[data-hdsi-theme] .session-clip { flex:none; width:100%; max-width:880px; margin:0 auto; padding:0 0 20px; border:0; border-bottom:1px solid var(--hdsi-color-border); background:transparent; box-shadow:none; }
+html[data-hdsi-theme] .session-clip header { min-height:36px; padding:0; gap:12px; background:transparent; border:0; flex-wrap:wrap; }
+html[data-hdsi-theme] .session-clip header b { font:400 var(--ui-meta)/1.6 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .session-index { font:var(--ui-meta)/1.5 var(--hdsi-font-mono); }
+html[data-hdsi-theme] .session-clip p { max-height:none; max-width:72ch; margin:8px 0 0; padding:0; overflow:visible; font:400 var(--ui-reading)/1.95 var(--hdsi-font-ui); white-space:pre-wrap; overflow-wrap:anywhere; }
+html[data-hdsi-theme] .session-fork { font:var(--ui-meta)/1.5 var(--hdsi-font-ui); min-height:28px; padding:3px 8px; }
+html[data-hdsi-theme] .session-clip.selected { outline:1px solid var(--hdsi-color-accent); outline-offset:8px; box-shadow:none; }
+
+/* Mixer: optional presets, generous fields and a secondary effective value. */
+html[data-hdsi-theme] .mixer-head { padding:16px 20px; flex-wrap:wrap; gap:12px; }
+html[data-hdsi-theme] .mixer-head-copy strong { font-size:var(--ui-title); }
+html[data-hdsi-theme] .mixer-head-copy > span:last-child { font-size:var(--ui-meta); }
+html[data-hdsi-theme] .mixer-actions { flex-wrap:wrap; }
+html[data-hdsi-theme] .mixer-actions button { font-size:var(--ui-label); min-height:32px; }
+html[data-hdsi-theme] .mixer-draft-badge { font:var(--ui-meta)/1.5 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .mixer-signal-row { padding:8px 20px; gap:16px; grid-template-columns:repeat(3,minmax(0,1fr)); }
+html[data-hdsi-theme] .mixer-signal { min-height:0; padding:0; border:0; background:transparent; }
+html[data-hdsi-theme] .mixer-signal-label { display:inline; font:10px/1.5 var(--hdsi-font-mono); letter-spacing:0; }
+html[data-hdsi-theme] .mixer-signal strong { display:inline; margin:0 0 0 8px; font:500 var(--ui-meta)/1.5 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .mixer-signal small { font-size:var(--ui-meta); line-height:1.5; }
+html[data-hdsi-theme] .mixer-presets-disclosure { flex:none; margin:4px 20px 12px; border-bottom:1px solid var(--hdsi-color-border); }
+html[data-hdsi-theme] .mixer-presets-disclosure > summary { cursor:pointer; padding:8px 0; font-size:var(--ui-label); }
+html[data-hdsi-theme] .mixer-presets-disclosure > summary span { margin-left:10px; font-size:var(--ui-meta); color:var(--hdsi-color-text-muted); }
+html[data-hdsi-theme] .behavior-presets { padding:12px 0 16px; border:0; }
+html[data-hdsi-theme] :is(.preset-title,.preset-btn,.preset-label) { font:var(--ui-meta)/1.5 var(--hdsi-font-ui); letter-spacing:0; }
+html[data-hdsi-theme] .mixer-sections { flex-wrap:wrap; overflow:visible; padding:0 20px; }
+html[data-hdsi-theme] .mixer-section-btn { font-size:var(--ui-label); padding:10px 12px; }
+html[data-hdsi-theme] .mixer-channel-strip { grid-template-columns:repeat(auto-fit,minmax(min(100%,390px),1fr)); gap:16px; padding:20px; }
+html[data-hdsi-theme] .mixer-channel:not(.story-quick) { grid-template-columns:minmax(0,1fr) minmax(92px,auto); grid-template-rows:auto auto; gap:12px 16px; padding:16px; min-height:0; }
+html[data-hdsi-theme] .mixer-channel[data-param-type="text"] { grid-column:1/-1; }
+html[data-hdsi-theme] .mixer-param-copy { grid-column:1/-1; grid-row:1; }
+html[data-hdsi-theme] .mixer-param-copy label { font-size:var(--ui-body); line-height:1.5; }
+html[data-hdsi-theme] .mixer-description { font:var(--ui-meta)/1.7 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .mixer-param-control { grid-column:1; grid-row:2; }
+html[data-hdsi-theme] .mixer-param-state { grid-column:2; grid-row:2; max-width:180px; overflow-wrap:anywhere; font-size:var(--ui-meta); }
+html[data-hdsi-theme] .mixer-param-state small { font-size:var(--ui-meta); }
+html[data-hdsi-theme] :is(.mixer-number,.mixer-select) { font-size:var(--ui-label); height:32px; min-width:0; }
+html[data-hdsi-theme] .mixer-text { font:var(--ui-body)/1.7 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .story-quick { grid-column:1/-1; gap:16px; padding:20px; }
+html[data-hdsi-theme] .story-quick label { font-size:var(--ui-label); }
+html[data-hdsi-theme] .story-quick textarea { font:var(--ui-body)/1.8 var(--hdsi-font-ui); padding:10px 12px; }
+html[data-hdsi-theme] .mixer-foot { font:var(--ui-meta)/1.6 var(--hdsi-font-ui); padding:10px 20px; margin-top:auto; }
+
+/* Technical timestamps and IDs stay mono; Chinese messages use UI sans. */
+html[data-hdsi-theme] .logs-filter-bar { padding:12px 20px; gap:8px; }
+html[data-hdsi-theme] .logs-filter-bar :is(input,select,button) { font-size:var(--ui-label); min-height:32px; }
+html[data-hdsi-theme] .logs-surface-pane { font:var(--ui-body)/1.65 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .log-row { grid-template-columns:76px minmax(120px,200px) minmax(0,1fr); padding:10px 20px; gap:16px; border-bottom-color:var(--hdsi-color-border-soft); }
+html[data-hdsi-theme] .log-row time { font:var(--ui-meta)/1.8 var(--hdsi-font-mono); }
+html[data-hdsi-theme] .log-row b { font:400 var(--ui-meta)/1.8 var(--hdsi-font-mono); }
+html[data-hdsi-theme] .log-row span { font:var(--ui-body)/1.65 var(--hdsi-font-ui); white-space:pre-wrap; }
+html[data-hdsi-theme] #logs-clear { border-color:transparent; background:transparent; color:var(--hdsi-color-text-secondary); }
+html[data-hdsi-theme] .follow-toggle { font:var(--ui-label)/1.5 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .logs-footer { min-height:30px; font-size:var(--ui-meta); }
+
+html[data-hdsi-theme] .stats-view { padding:0 20px 24px; }
+html[data-hdsi-theme] .stats-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding-top:20px; }
+html[data-hdsi-theme] .stats-card { padding:18px; border-color:var(--hdsi-color-border-soft); }
+html[data-hdsi-theme] .stats-card::before { content:none; }
+html[data-hdsi-theme] .stats-card-label { font:500 var(--ui-label)/1.5 var(--hdsi-font-ui); letter-spacing:0; margin-bottom:12px; }
+html[data-hdsi-theme] .stats-card-value { font:500 28px/1.3 var(--hdsi-font-mono); }
+html[data-hdsi-theme] .stats-card-value small { font:var(--ui-meta)/1.5 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .stats-card-sub { font:var(--ui-meta)/1.7 var(--hdsi-font-ui); margin-top:8px; }
+html[data-hdsi-theme] .view-meta { font:var(--ui-meta)/1.6 var(--hdsi-font-ui); min-height:36px; flex-wrap:wrap; padding:8px 0; }
+html[data-hdsi-theme] .view-meta span { white-space:normal; }
+
+/* Eight configuration tabs share one group rhythm. Save semantics unchanged. */
+html[data-hdsi-theme] .config-body { padding:20px 24px; }
+html[data-hdsi-theme] .config-tabs { flex-wrap:wrap; }
+html[data-hdsi-theme] .config-tabs button { font:var(--ui-label)/1.4 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .cfg-section-title { margin:24px 0 12px; padding-bottom:8px; font:550 var(--ui-body)/1.5 var(--hdsi-font-ui); letter-spacing:0; text-transform:none; }
+html[data-hdsi-theme] .cfg-section-title:first-child { margin-top:0; }
+html[data-hdsi-theme] :is(.cfg-short,.cfg-tall,.cfg-list-header) { gap:8px; font:var(--ui-label)/1.6 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .cfg-tall { margin-bottom:16px; }
+html[data-hdsi-theme] .config-grid { gap:12px 16px; margin-bottom:16px; }
+html[data-hdsi-theme] :is(.cfg-short input,.cfg-short select,.cfg-card-header input,.cfg-card-header select) { height:32px; min-width:0; max-width:100%; font:var(--ui-label)/1.5 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .cfg-tall textarea { padding:10px 12px; font:var(--ui-body)/1.8 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .cfg-card-list { gap:12px; }
+html[data-hdsi-theme] .cfg-card { padding:14px; }
+html[data-hdsi-theme] .cfg-card-header { gap:8px 12px; }
+html[data-hdsi-theme] .cfg-expand-toggle { font-size:var(--ui-meta); padding:8px 0; }
+html[data-hdsi-theme] #config-source { font:var(--ui-body)/1.7 var(--hdsi-font-mono); }
+
+/* Inspector, all five detail tabs, and auxiliary dialogs. */
+html[data-hdsi-theme] .context-inspector-section { margin-bottom:20px; }
+html[data-hdsi-theme] :is(.inspect-grid dt,.context-inspector-section .inspect-grid dt) { font:var(--ui-meta)/1.5 var(--hdsi-font-ui); }
+html[data-hdsi-theme] :is(.inspect-grid dd,.context-inspector-section .inspect-grid dd) { font-size:var(--ui-label); line-height:1.6; }
+html[data-hdsi-theme] .detail-row { padding:9px 12px; font:var(--ui-label)/1.65 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .detail-row time { font:var(--ui-meta)/1.8 var(--hdsi-font-mono); }
+html[data-hdsi-theme] .detail-row span { white-space:normal; overflow-wrap:anywhere; }
+html[data-hdsi-theme] .detail-content pre { font:var(--ui-label)/1.7 var(--hdsi-font-mono); }
+html[data-hdsi-theme] .help-body { padding:20px 24px; }
+html[data-hdsi-theme] .help-body section + section { margin-top:24px; }
+html[data-hdsi-theme] .help-list { gap:10px 16px; }
+html[data-hdsi-theme] .help-list dt { font:var(--ui-meta)/1.7 var(--hdsi-font-mono); }
+html[data-hdsi-theme] :is(.help-list dd,.help-p) { font:var(--ui-body)/1.8 var(--hdsi-font-ui); }
+html[data-hdsi-theme] :is(.wizard-hint) { font:var(--ui-meta)/1.7 var(--hdsi-font-ui); }
+html[data-hdsi-theme] .fork-dialog form > header { align-items:flex-start; flex-direction:column; gap:12px; }
+html[data-hdsi-theme] .fork-dialog small { font:var(--ui-meta)/1.7 var(--hdsi-font-ui); }
+
+@media (max-width:1120px) {
+  html[data-hdsi-theme] .workspace-header { padding:10px 76px 10px 16px; }
+  html[data-hdsi-theme] #studio-surface .workspace-header #workspace-subtitle { display:none; }
+  html[data-hdsi-theme] .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:860px) {
+  html[data-hdsi-theme] .workspace-header { padding-left:76px; }
+  html[data-hdsi-theme] #studio-surface .workspace-header #workspace-title { display:block; font-size:16px; }
+  html[data-hdsi-theme] .studio-hud-context,
+  html[data-hdsi-theme] .studio-hud-lower { grid-template-columns:1fr; gap:20px; }
+  html[data-hdsi-theme] .studio-hud-item.hud-scene { min-height:0; }
+  html[data-hdsi-theme] .studio-hud-signal small em { display:none; }
+  html[data-hdsi-theme] .log-row { grid-template-columns:72px minmax(0,1fr); gap:4px 12px; padding:10px 16px; }
+  html[data-hdsi-theme] .log-row span { grid-column:1/-1; }
+  html[data-hdsi-theme] .mixer-signal-row { gap:12px; }
+  html[data-hdsi-theme] .mixer-presets-disclosure > summary span { display:none; }
+}
+
+/* Grid dimensions come from applyPanelLayout. A collapsed item must also leave
+   the grid's auto-placement flow (not just surrender its column width). */
+html[data-hdsi-theme] .studio-shell > .panel-collapsed { display:none !important; }
+.studio-shell.browser-hidden #handle-browser,
+.studio-shell.inspector-hidden #handle-inspector,
+.studio-shell.detail-hidden #handle-detail { display:none; }
+@media (max-width:1120px) {
+  html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .inspector-panel {
+    display:flex !important; position:fixed; top:86px; right:0; bottom:0;
+    width:min(320px,85vw); z-index:40; transform:translateX(100%);
+    background:var(--hdsi-color-surface); box-shadow:-8px 0 24px var(--hdsi-shadow-soft);
+  }
+  html[data-hdsi-theme] .inspector-panel.panel-open { transform:translateX(0); }
+  html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) #inspector-fab { display:inline-flex !important; top:94px; }
+  html[data-hdsi-theme] .studio-shell > .inspector-panel.panel-collapsed { display:none !important; }
+}
+html[data-hdsi-theme] #logs-surface.active { display:flex; flex-direction:column; height:100%; min-height:0; }
+html[data-hdsi-theme] #logs-scroll { flex:1; min-height:0; overflow:auto; }
+html[data-hdsi-theme] .logs-footer { flex:none; }
+/* 连接页此前是唯一没有 flex 高度链的主表面：.connect-layout 的百分比高度挂在
+   高度不确定的 section 上退化为内容高，被 workspace-panel(overflow:hidden)
+   裁掉底部——账号配置滚不到底。与 logs/koishi 同款处理。 */
+html[data-hdsi-theme] #connect-surface.active { display:flex; flex-direction:column; height:100%; min-height:0; }
+html[data-hdsi-theme] #connect-surface.active > .workspace-header { flex:none; }
+html[data-hdsi-theme] .studio-hud-context .studio-hud-card:nth-child(2) h3::after { content:none; }

@@ -1,0 +1,227 @@
+{
+  "typography": {
+    "fontWeight": {
+      "semibold": 600,
+      "bold": 700,
+      "medium": 500,
+      "normal": 400
+    },
+    "fontSize": {
+      "sm": "12px",
+      "lg": "16px",
+      "base": "13px",
+      "xl": "18px",
+      "md": "14px",
+      "xs": "11px"
+    },
+    "fontFamily": {
+      "mono": "JetBrains Mono, Consolas, 'Courier New', monospace",
+      "ui": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "display": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    },
+    "letterSpacing": {
+      "wide": "0.02em",
+      "normal": "0",
+      "tight": "-0.01em"
+    }
+  },
+  "version": "2.0.0",
+  "author": "HDSI Team",
+  "id": "warm-studio",
+  "geometry": {
+    "borderWidth": {
+      "thick": "2px",
+      "thin": "1px",
+      "normal": "1px"
+    },
+    "outlineStyle": "solid",
+    "style": "rounded",
+    "borderRadius": {
+      "large": "12px",
+      "small": "4px",
+      "full": "999px",
+      "medium": "8px",
+      "none": "0px",
+      "minimal": "2px",
+      "xlarge": "16px"
+    }
+  },
+  "effects": {
+    "shadows": {
+      "large": "0 8px 16px rgba(0,0,0,0.3)",
+      "small": "0 2px 4px rgba(0,0,0,0.2)",
+      "medium": "0 4px 8px rgba(0,0,0,0.25)",
+      "none": "none",
+      "minimal": "0 1px 2px rgba(0,0,0,0.15)",
+      "xlarge": "0 16px 32px rgba(0,0,0,0.35)"
+    },
+    "glowColors": {
+      "subtle": "0 0 8px rgba(245,158,11,0.2), 0 0 16px rgba(245,158,11,0.1)",
+      "accent": "0 0 16px rgba(245,158,11,0.3), 0 0 32px rgba(245,158,11,0.15)"
+    },
+    "glowIntensity": 0.2,
+    "gradientStops": 2,
+    "shadowStyle": "small",
+    "gradientAngle": "135deg",
+    "opacity": {
+      "disabled": 0.5,
+      "muted": 0.7,
+      "normal": 1.0
+    },
+    "gradientsEnabled": true,
+    "backdropBlur": "0px",
+    "glowEnabled": true
+  },
+  "components": {
+    "button": {
+      "borderRadius": "medium",
+      "paddingX": {
+        "lg": "16px",
+        "sm": "8px",
+        "md": "12px"
+      },
+      "height": {
+        "lg": "32px",
+        "sm": "24px",
+        "md": "28px"
+      },
+      "hoverTransform": "translateY(-1px)",
+      "textTransform": "none",
+      "shadow": "small",
+      "fontWeight": "medium"
+    },
+    "card": {
+      "padding": "lg",
+      "borderWidth": "thin",
+      "borderRadius": "large",
+      "shadow": "medium"
+    },
+    "input": {
+      "paddingX": "10px",
+      "height": "28px",
+      "fontSize": "base",
+      "borderWidth": "thin",
+      "borderRadius": "medium"
+    },
+    "clip": {
+      "padding": "sm",
+      "borderWidth": "thin",
+      "borderRadius": "medium",
+      "shadow": "medium"
+    },
+    "track": {
+      "separatorWidth": "1px",
+      "height": "32px",
+      "borderRadius": "small",
+      "shadow": "small"
+    },
+    "panel": {
+      "padding": "md",
+      "backdropBlur": "0px",
+      "borderRadius": "medium",
+      "shadow": "small"
+    }
+  },
+  "preview": "./previews/warm-studio.png",
+  "presets": {
+    "densityPreset": "standard",
+    "visualStyle": "gradient",
+    "animationLevel": "normal"
+  },
+  "spacing": {
+    "values": {
+      "sm": "8px",
+      "lg": "16px",
+      "xl": "24px",
+      "md": "12px",
+      "3xl": "40px",
+      "2xl": "32px",
+      "xs": "4px"
+    },
+    "density": "standard",
+    "lineHeight": {
+      "relaxed": 1.75,
+      "normal": 1.5,
+      "tight": 1.25
+    },
+    "scale": 1.0,
+    "base": 8
+  },
+  "animation": {
+    "defaultEasing": "easeOut",
+    "duration": {
+      "slower": "400ms",
+      "slow": "300ms",
+      "normal": "200ms",
+      "instant": "0ms",
+      "fast": "150ms"
+    },
+    "speed": "normal",
+    "easing": {
+      "easeInOut": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "bounce": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)",
+      "easeIn": "cubic-bezier(0.4, 0, 1, 1)",
+      "ease": "ease",
+      "linear": "linear"
+    },
+    "enabled": true,
+    "defaultDuration": "normal"
+  },
+  "colors": {
+    "text": {
+      "tertiary": "#a39a8f",
+      "secondary": "#d4cdc5",
+      "muted": "#716b63",
+      "primary": "#f5f1ed"
+    },
+    "tracks": {
+      "script": [
+        "#f59e0b",
+        "#fbbf24"
+      ],
+      "alter": [
+        "#ec4899",
+        "#f472b6"
+      ],
+      "media": [
+        "#8b5cf6",
+        "#a78bfa"
+      ],
+      "receive": [
+        "#3b82f6",
+        "#60a5fa"
+      ],
+      "state": [
+        "#84cc16",
+        "#a3e635"
+      ],
+      "send": [
+        "#ef4444",
+        "#f87171"
+      ]
+    },
+    "accent": {
+      "tertiary": "#ec4899",
+      "secondary": "#ef4444",
+      "primary": "#f59e0b"
+    },
+    "status": {
+      "error": "#dc2626",
+      "warning": "#f97316",
+      "info": "#06b6d4",
+      "success": "#84cc16"
+    },
+    "background": {
+      "canvas": "#1c1815",
+      "elevated": "#2e2a27",
+      "surface": "#252220",
+      "highlight": "#47433d",
+      "panel": "#3a3531"
+    }
+  },
+  "description": "温暖大地色系，适合创意工作",
+  "category": "color",
+  "name": "Warm Studio",
+  "colorScheme": "dark"
+}

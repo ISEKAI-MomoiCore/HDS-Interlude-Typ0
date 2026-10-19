@@ -1,0 +1,244 @@
+{
+  "id": "fl-studio-pro",
+  "name": "FL Studio Pro",
+  "version": "2.0.0",
+  "author": "HDSI Team",
+  "category": "custom",
+  "description": "DAW工业风格，高密度信息展示",
+  "preview": "./previews/fl-studio-pro.png",
+  "colors": {
+    "background": {
+      "canvas": "#0f0f0f",
+      "surface": "#1a1a1a",
+      "elevated": "#242424",
+      "highlight": "#2e2e2e",
+      "panel": "#1a1a1a"
+    },
+    "text": {
+      "primary": "#ffffff",
+      "secondary": "#d0d0d0",
+      "tertiary": "#a0a0a0",
+      "muted": "#707070"
+    },
+    "sidebar": {
+      "bg": "#1a1a1a",
+      "text": "#ffffff",
+      "textDim": "#a0a0a0",
+      "hover": "#242424",
+      "active": "#2e2e2e"
+    },
+    "accent": {
+      "primary": "#ff6b35",
+      "secondary": "#00d4ff",
+      "tertiary": "#ffc900"
+    },
+    "status": {
+      "success": "#00d4ff",
+      "warning": "#ffc900",
+      "error": "#ff6b35",
+      "info": "#00d4ff"
+    },
+    "tracks": {
+      "script": [
+        "#00d4ff",
+        "#0ea5e9"
+      ],
+      "receive": [
+        "#00ff88",
+        "#00cc70"
+      ],
+      "send": [
+        "#ffc900",
+        "#ffaa00"
+      ],
+      "alter": [
+        "#ff6b35",
+        "#ff8855"
+      ],
+      "media": [
+        "#a855f7",
+        "#c084fc"
+      ],
+      "state": [
+        "#00d4ff",
+        "#22d3ee"
+      ]
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "ui": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      "display": "'Inter', sans-serif",
+      "mono": "'JetBrains Mono', Consolas, monospace"
+    },
+    "fontSize": {
+      "xs": "10px",
+      "sm": "11px",
+      "base": "12px",
+      "md": "13px",
+      "lg": "14px",
+      "xl": "16px"
+    },
+    "fontWeight": {
+      "normal": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "normal": "0",
+      "wide": "0.01em"
+    }
+  },
+  "spacing": {
+    "base": 6,
+    "scale": 0.9,
+    "density": "compact",
+    "values": {
+      "xs": "3px",
+      "sm": "6px",
+      "md": "9px",
+      "lg": "12px",
+      "xl": "18px",
+      "2xl": "24px",
+      "3xl": "32px"
+    },
+    "lineHeight": {
+      "tight": 1.2,
+      "normal": 1.4,
+      "relaxed": 1.6
+    }
+  },
+  "geometry": {
+    "style": "sharp",
+    "borderRadius": {
+      "none": "0px",
+      "minimal": "1px",
+      "small": "2px",
+      "medium": "2px",
+      "large": "4px",
+      "xlarge": "6px",
+      "full": "999px"
+    },
+    "borderWidth": {
+      "thin": "1px",
+      "normal": "2px",
+      "thick": "3px"
+    },
+    "outlineStyle": "solid"
+  },
+  "effects": {
+    "shadowStyle": "large",
+    "shadows": {
+      "none": "none",
+      "minimal": "0 1px 2px rgba(0,0,0,0.3)",
+      "small": "0 2px 4px rgba(0,0,0,0.4)",
+      "medium": "0 4px 8px rgba(0,0,0,0.5)",
+      "large": "0 8px 16px rgba(0,0,0,0.6)",
+      "xlarge": "0 16px 32px rgba(0,0,0,0.7)"
+    },
+    "glowEnabled": true,
+    "glowIntensity": 0.6,
+    "glowColors": {
+      "accent": "0 0 20px rgba(255,107,53,0.6), 0 0 40px rgba(255,107,53,0.3)",
+      "subtle": "0 0 10px rgba(255,107,53,0.3)"
+    },
+    "gradientsEnabled": true,
+    "gradientAngle": "135deg",
+    "gradientStops": 2,
+    "backdropBlur": "0px",
+    "opacity": {
+      "normal": 1.0,
+      "muted": 0.7,
+      "disabled": 0.4
+    }
+  },
+  "animation": {
+    "enabled": true,
+    "speed": "fast",
+    "defaultDuration": "150ms",
+    "defaultEasing": "easeOut",
+    "duration": {
+      "instant": "0ms",
+      "fast": "100ms",
+      "normal": "150ms",
+      "slow": "250ms",
+      "slower": "350ms"
+    },
+    "easing": {
+      "linear": "linear",
+      "ease": "ease",
+      "easeIn": "cubic-bezier(0.4, 0, 1, 1)",
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)",
+      "easeInOut": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "bounce": "cubic-bezier(0.68, -0.55, 0.265, 1.55)"
+    }
+  },
+  "components": {
+    "button": {
+      "height": {
+        "sm": "22px",
+        "md": "26px",
+        "lg": "30px"
+      },
+      "paddingX": {
+        "sm": "6px",
+        "md": "10px",
+        "lg": "14px"
+      },
+      "borderRadius": "small",
+      "fontWeight": "semibold",
+      "shadow": "medium",
+      "hoverTransform": "translateY(-1px)",
+      "textTransform": "uppercase"
+    },
+    "input": {
+      "height": "26px",
+      "paddingX": "8px",
+      "borderRadius": "small",
+      "borderWidth": "normal",
+      "fontSize": "sm"
+    },
+    "panel": {
+      "padding": "sm",
+      "borderRadius": "small",
+      "shadow": "medium",
+      "backdropBlur": "0px"
+    },
+    "card": {
+      "padding": "md",
+      "borderRadius": "medium",
+      "shadow": "large",
+      "borderWidth": "normal"
+    },
+    "track": {
+      "height": "28px",
+      "borderRadius": "minimal",
+      "shadow": "medium",
+      "separatorWidth": "2px"
+    },
+    "clip": {
+      "padding": "xs",
+      "borderRadius": "small",
+      "borderWidth": "normal",
+      "shadow": "large"
+    }
+  },
+  "layout": {
+    "sidebarWidth": {
+      "browser": "200px",
+      "inspector": "240px"
+    },
+    "detailHeight": "180px",
+    "transportHeight": "44px",
+    "minPanelWidth": "160px",
+    "maxPanelWidth": "360px"
+  },
+  "presets": {
+    "visualStyle": "gradient",
+    "densityPreset": "compact",
+    "animationLevel": "normal"
+  },
+  "colorScheme": "dark"
+}

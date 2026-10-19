@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-hdsi-workspace="v4">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <title>HDSI Desktop — typ-0</title>
+  <link rel="stylesheet" href="./style.css" />
+  <style>
+    /* M4: dense, flat workstation controls. These overrides intentionally stay
+       beside the shell so the layout is portable with the renderer bundle. */
+    .panel-header { gap: 7px; }
+    .layout-menu { position: relative; z-index: 100; margin-left: 4px; }
+    .layout-menu summary { cursor: pointer; list-style: none; color: var(--hdsi-color-text-secondary); font: 10px/1 ui-monospace, Consolas, monospace; }
+    .layout-menu summary::-webkit-details-marker { display: none; }
+    .layout-menu > div { position: absolute; z-index: 30; top: 17px; right: 0; display: grid; gap: 1px; min-width: 88px; padding: 3px; border: 1px solid var(--hdsi-color-border); background: var(--hdsi-color-surface-sunken); box-shadow: 0 8px 18px rgba(0,0,0,.45); }
+    .layout-menu button { padding: 4px 6px; border: 0; background: var(--hdsi-color-surface); color: var(--hdsi-color-text-secondary); text-align: left; font-size: 10px; }
+    .layout-menu button:hover { background: var(--hdsi-color-surface-hover); color: var(--hdsi-color-text-primary); }
+    #theme-menu-btn { margin-left: 4px; padding: 4px 6px; border: 0; background: transparent; color: var(--hdsi-color-text-secondary, var(--hdsi-color-text-secondary)); font: 10px/1 ui-monospace, Consolas, monospace; cursor: pointer; }
+    #theme-menu-btn:hover { color: var(--hdsi-color-text-primary, var(--hdsi-color-text-primary)); }
+    .panel-header .panel-collapse { margin-left: auto; min-width: 23px; padding: 2px 5px; font-size: 11px; }
+    .browser-panel, .inspector-panel, .detail-panel, .workspace-panel { min-width: 0; }
+    .browser-section { margin: 7px 0 0; border-top: 1px solid var(--line, var(--hdsi-color-surface-raised)); padding-top: 5px; }
+    .browser-section summary { cursor: pointer; display: flex; align-items: center; gap: 6px; list-style: none; color: var(--hdsi-color-text-muted); font: 700 10px/1.6 ui-monospace, Consolas, monospace; letter-spacing: .08em; }
+    .browser-section summary::-webkit-details-marker { display: none; }
+    .browser-section summary::before { content: '›'; font-size: 15px; color: var(--hdsi-color-text-muted); transform: rotate(90deg); transition: transform .12s ease; }
+    .browser-section:not([open]) summary::before { transform: rotate(0); }
+    .browser-section summary small { margin-left: auto; color: var(--hdsi-color-text-muted); font-size: 9px; }
+    .browser-section .browser-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; margin-top: 4px; }
+    .browser-item { min-height: 24px; padding: 3px 7px; text-align: left; font-size: 11px; }
+    .track-menu-item { display: grid; grid-template-columns: 16px minmax(0,1fr) auto; align-items: center; width: 100%; border: 0; border-left: 2px solid var(--hdsi-color-border-strong); background: transparent; color: var(--hdsi-color-text-secondary); padding: 3px 5px; cursor: pointer; text-align: left; font: 11px/1.35 ui-monospace, Consolas, monospace; }
+    .track-menu-item:hover { background: var(--hdsi-color-surface); color: var(--hdsi-color-text-primary); }
+    .track-menu-item[aria-pressed="true"] { border-left-color: var(--hdsi-color-state-info); color: var(--hdsi-color-state-info-bg); background: var(--hdsi-color-surface); }
+    .track-menu-item i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .9; }
+    .track-menu-item small { color: var(--hdsi-color-text-muted); font-size: 9px; }
+    .workspace-header { gap: 8px; }
+    .arrangement-controls { display: inline-flex; gap: 2px; align-items: center; padding: 2px; border: 1px solid var(--hdsi-color-border-soft); background: var(--hdsi-color-canvas); }
+    .arrangement-controls button { min-width: 25px; min-height: 22px; padding: 2px 5px; border: 0; border-right: 1px solid var(--hdsi-color-border-soft); background: var(--hdsi-color-surface); color: var(--hdsi-color-text-primary); font: 700 11px/1 ui-monospace, Consolas, monospace; }
+    .arrangement-controls button:last-child { border-right: 0; }
+    .arrangement-controls button:hover { background: var(--hdsi-color-border); color: white; }
+    .arrangement-controls .now-control { color: var(--hdsi-color-state-info); min-width: 39px; }
+    .arrangement-ruler { grid-template-columns: 132px minmax(0, 1fr) 60px; position: relative; }
+    .arrangement-ruler > span { font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .arrangement-ruler .range-meta { position: absolute; inset: auto 100px 1px; pointer-events: none; display: flex; align-items: center; justify-content: flex-end; font: 9px/1 ui-monospace, Consolas, monospace; color: var(--hdsi-color-text-muted); letter-spacing: .04em; z-index: -1; }
+    .arrangement { overflow: auto; overscroll-behavior: contain; }
+    .arrangement-track { grid-template-columns: 132px minmax(0, 1fr); min-height: 38px; }
+    .arrangement-track > header { position: sticky; left: 0; z-index: 3; background: var(--hdsi-color-surface); display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px; padding: 4px 7px; border-right: 1px solid var(--hdsi-color-border-soft); }
+    .arrangement-track > header b { font-size: 10px; letter-spacing: .07em; }
+    .arrangement-track > header small { font: 9px/1 ui-monospace, Consolas, monospace; color: #7c7c7c; }
+    .arrangement-track.script-track { min-height: 92px; }
+    .arrangement-track.script-track > header { background: var(--hdsi-color-surface-sunken); }
+    .arrangement-track.timeline-track, .arrangement-track.message-track { min-height: 31px; }
+    .arrangement-track.facts-track, .arrangement-track.preplan-track { min-height: 46px; }
+    .track-lane { min-width: 660px; background-image: linear-gradient(90deg, transparent 24.9%, rgba(255,255,255,.055) 25%, transparent 25.1%, transparent 49.9%, rgba(255,255,255,.055) 50%, transparent 50.1%, transparent 74.9%, rgba(255,255,255,.055) 75%, transparent 75.1%); }
+    .clip { border-radius: 1px; }
+    .script-track .clip { display: flex; flex-direction: column; text-align: left; padding: 5px 7px; border-left: 3px solid var(--hdsi-color-state-info); overflow: hidden; gap: 2px; }
+    .script-track .clip b { flex: 1; min-height: 0; font-size: 11px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-all; }
+    .script-track .clip small { flex: none; color: rgba(255,255,255,.67); font: 9px/1.2 ui-monospace, Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .clip .clip-chips { display: inline-flex; gap: 3px; margin-top: 4px; }
+    .clip .clip-chip { padding: 1px 3px; background: rgba(0,0,0,.22); color: var(--hdsi-color-state-info-bg); font: 8px/1.1 ui-monospace, Consolas, monospace; }
+    .account-row { display: flex; gap: 5px; align-items: center; margin: 3px 0; min-width: 0; }
+    .account-row > * { min-width: 0; }
+    .account-row input { flex: 1; min-width: 0; height: 22px; padding: 1px 5px; background: var(--hdsi-color-canvas); color: var(--hdsi-color-text-primary); border: 1px solid var(--hdsi-color-surface-hover); font: 10px/1.2 ui-monospace, Consolas, monospace; }
+    .account-led { font-style: normal; font-size: 10px; }
+    .account-led.online { color: var(--hdsi-color-state-success); }
+    .account-led.ready { color: var(--hdsi-color-state-info); }
+    .account-led.drift { color: var(--hdsi-color-track-send); }
+    .account-led.offline { color: var(--hdsi-color-text-muted); }
+    .account-actions { display: flex; gap: 4px; }
+    .account-actions button { font-size: 10px; padding: 2px 6px; }
+    .account-hint { color: var(--faint, var(--hdsi-color-text-muted)); font-size: 10px; line-height: 1.5; display: block; }
+    .account-nick { color: var(--dim, var(--hdsi-color-text-secondary)); font-size: 10px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .clip-chip.delivery-badge { background: rgba(120,40,30,.55); color: var(--hdsi-color-state-danger-fg); }
+    .clip-chip.scene-boundary { background: rgba(40,80,120,.5); color: var(--hdsi-color-state-info); }
+    .branch-tag { display: inline-block; margin-left: 5px; padding: 0 3px; background: rgba(40,80,120,.4); color: var(--hdsi-color-state-info); font: 8px/1.3 ui-monospace, Consolas, monospace; border-radius: 1px; }
+    .delivery-reality { margin-top: 8px; padding: 7px 9px; border-left: 2px solid var(--hdsi-color-state-danger); background: var(--hdsi-color-canvas); }
+    .delivery-reality b { display: block; margin-bottom: 4px; color: var(--hdsi-color-state-danger-fg); font-size: 10px; letter-spacing: .04em; }
+    .delivery-segment { display: flex; gap: 6px; align-items: baseline; padding: 2px 0; font: 10px/1.4 ui-monospace, Consolas, monospace; }
+    .delivery-segment em { min-width: 64px; color: var(--hdsi-color-text-muted); font-style: normal; }
+    .delivery-segment span { color: var(--hdsi-color-text-secondary); overflow-wrap: anywhere; }
+    .arrangement-footer { position: sticky; left: 0; min-width: max-content; padding: 5px 8px; background: var(--hdsi-color-surface-sunken); color: var(--hdsi-color-text-muted); font: 10px/1.4 ui-monospace, Consolas, monospace; }
+    /* M5: Logs Surface — filter bar, virtual list, footer stats. */
+    .logs-filter-bar { display: flex; gap: 4px; align-items: center; padding: 5px 7px; background: var(--hdsi-color-surface); border-bottom: 1px solid var(--hdsi-color-surface-sunken); flex: none; }
+    .logs-filter-bar select, .logs-filter-bar input { height: 22px; padding: 1px 5px; background: var(--hdsi-color-canvas); color: var(--hdsi-color-text-primary); border: 1px solid var(--hdsi-color-surface-hover); font: 10px/1.2 ui-monospace, Consolas, monospace; }
+    #log-level-filter { width: 104px; }
+    .logs-filter-bar input[type="search"] { flex: 1; min-width: 90px; max-width: 240px; }
+    .logs-filter-bar button { height: 22px; padding: 1px 7px; }
+    #log-backlog { color: var(--hdsi-color-state-warning); font: 10px/1 ui-monospace, Consolas, monospace; }
+    #logs-vlist { will-change: transform; }
+    .logs-older { width: 100%; padding: 6px; border: 0; border-bottom: 1px solid var(--hdsi-color-border-soft); background: var(--hdsi-color-surface); color: var(--hdsi-color-state-info); font: 10px/1 ui-monospace, Consolas, monospace; cursor: pointer; }
+    .logs-older:hover { background: var(--hdsi-color-surface); }
+    .log-row { display: grid; grid-template-columns: 76px 132px minmax(0, 1fr); gap: 6px; padding: 2px 4px; border-bottom: 1px solid var(--hdsi-color-surface); cursor: pointer; }
+    .log-row:hover { background: var(--hdsi-color-surface); }
+    .log-row.selected { background: var(--hdsi-color-surface-raised); outline: 1px solid var(--hdsi-color-state-info-border); }
+    .log-row.warn time ~ b, .log-row.warn b { color: var(--hdsi-color-state-warning); }
+    .log-row.error time ~ b, .log-row.error b { color: var(--hdsi-color-state-danger); }
+    .log-row.error span { color: var(--hdsi-color-state-danger); }
+    .log-row.debug time ~ b, .log-row.debug b { color: var(--hdsi-color-text-muted); }
+    .log-row.debug span { color: var(--hdsi-color-text-muted); }
+    .log-row.debug { opacity: .82; }
+    .log-row time { color: var(--hdsi-color-text-muted); }
+    .log-row b { color: var(--hdsi-color-state-info); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .log-row.error b, .log-row.error span { color: var(--hdsi-color-state-danger-fg); }
+    .log-row.warn span { color: var(--hdsi-color-state-warning-fg); }
+    .log-row span { overflow-wrap: anywhere; }
+    .log-row.log-open span { white-space: pre-wrap; }
+    /* M6: Koishi Console 嵌入容器。BrowserView 由主进程覆盖在 anchor 矩形上。 */
+    .koishi-console-pane { position: relative; min-height: 0; flex: 1; overflow: hidden; background: var(--hdsi-color-surface-sunken); }
+    .koishi-embed-anchor { position: absolute; inset: 0; }
+    .koishi-overlay { position: absolute; inset: 0; overflow: auto; width: min(560px, 92%); margin: 40px auto; text-align: center; color: var(--dim, var(--hdsi-color-text-secondary)); }
+    .koishi-overlay.hidden { display: none; }
+    .koishi-overlay h2 { color: var(--hdsi-color-text-primary); font-size: 16px; font-weight: 500; }
+    .koishi-overlay p { line-height: 1.75; }
+    .koishi-overlay dl { display: grid; grid-template-columns: 1fr 1fr; margin-top: 20px; border: 1px solid var(--hdsi-color-border-strong); text-align: left; }
+    .koishi-overlay dl div { padding: 8px; border-bottom: 1px solid var(--hdsi-color-border); }
+    .koishi-overlay dt { color: var(--faint, var(--hdsi-color-text-muted)); font-size: 10px; }
+    .koishi-overlay dd { margin: 3px 0 0; color: var(--hdsi-color-text-primary); overflow-wrap: anywhere; font: 10px/1.4 ui-monospace, Consolas, monospace; }
+    .placeholder-icon { width: 52px; height: 52px; display: grid; place-items: center; margin: 0 auto 12px; border: 1px solid var(--hdsi-color-text-muted); color: var(--accent, var(--hdsi-color-accent)); font-size: 24px; font-weight: 700; }
+    .logs-footer { display: flex; justify-content: space-between; gap: 10px; padding: 3px 8px; background: var(--hdsi-color-surface); border-top: 1px solid var(--hdsi-color-surface-sunken); color: var(--hdsi-color-text-muted); font: 10px/1.4 ui-monospace, Consolas, monospace; flex: none; }
+    /* 帮助对话框（快捷键 + 术语） */
+    #help-dialog { width: min(640px, 92vw); max-height: 82vh; border: 1px solid var(--hdsi-color-border); background: var(--hdsi-color-surface-sunken); color: var(--hdsi-color-text-secondary); padding: 0; }
+    #help-dialog::backdrop { background: rgba(0,0,0,.55); }
+    #help-form header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--hdsi-color-border-soft); }
+    #help-form header strong { font-size: 13px; }
+    #help-close { border: 0; background: transparent; color: var(--hdsi-color-text-secondary); font-size: 16px; cursor: pointer; }
+    #help-close:hover { color: var(--hdsi-color-text-primary); }
+    .help-body { padding: 10px 16px 16px; overflow: auto; max-height: calc(82vh - 67px); }
+    .help-body h4 { margin: 12px 0 6px; font-size: 11px; letter-spacing: .08em; color: var(--hdsi-color-state-info); }
+    .help-list { display: grid; grid-template-columns: 130px 1fr; gap: 3px 10px; margin: 0; }
+    .help-list dt { font: 10px/1.6 ui-monospace, Consolas, monospace; color: var(--hdsi-color-accent); }
+    .help-list dd { margin: 0; font-size: 11px; line-height: 1.6; color: var(--hdsi-color-text-secondary); }
+    .help-p { font-size: 11px; line-height: 1.7; color: var(--hdsi-color-text-secondary); margin: 0; }
+    .workspace-panel.panel-collapsed, .browser-panel.panel-collapsed, .inspector-panel.panel-collapsed, .detail-panel.panel-collapsed { display: none; }
+    .studio-shell.browser-hidden { grid-template-columns: minmax(420px,1fr) 264px; }
+    .studio-shell.inspector-hidden { grid-template-columns: 214px minmax(420px,1fr); }
+    .studio-shell.browser-hidden.inspector-hidden { grid-template-columns: minmax(420px,1fr); }
+    .studio-shell.browser-hidden .detail-panel { grid-column: 1 / -1; }
+    .studio-shell.inspector-hidden .detail-panel { grid-column: 2 / -1; }
+    .studio-shell.browser-hidden.inspector-hidden .detail-panel { grid-column: 1 / -1; }
+    .studio-shell.detail-hidden { grid-template-rows: minmax(300px,1fr) 0; }
+    .studio-shell.detail-hidden .detail-panel { display: none; }
+    @media (max-width: 1100px) { .arrangement-track { grid-template-columns: 108px minmax(0,1fr); } .browser-panel { width: auto; } }
+  </style>
+  <link rel="stylesheet" href="./workspace-layout.css" />
+  <link rel="stylesheet" href="./responsive-fix.css" />
+  <link rel="stylesheet" href="./mixer-v3.css" />
+  <link rel="stylesheet" href="./accounts-v3.css" />
+  <link rel="stylesheet" href="./host-v3-unify.css" />
+  <link rel="stylesheet" href="./misc-v3.css" />
+  <link rel="stylesheet" href="./workspace-profile-v7.css" />
+  <link rel="stylesheet" href="./ui-hierarchy.css" />
+  <link rel="stylesheet" href="./ui-refinement.css" />
+  <link rel="stylesheet" href="./ui-spacing.css" />
+  <link rel="stylesheet" href="./ui-seams.css" />
+</head>
+<body>
+  <header class="transport-bar">
+    <div class="brand-mark" aria-label="HDSI typ·0"><span class="brand-text">HDS<em>I</em></span><span class="brand-sub">typ·0</span></div>
+    <nav class="surface-tabs" role="tablist" aria-label="主工作区"><button data-surface="connect" role="tab" id="tab-connect" aria-controls="connect-surface" aria-selected="false" tabindex="-1">连接 <small>Connect</small></button><button data-surface="studio" class="active" role="tab" id="tab-studio" aria-controls="studio-surface" aria-selected="true">剧本 <small>Studio</small></button><button data-surface="logs" role="tab" id="tab-logs" aria-controls="logs-surface" aria-selected="false" tabindex="-1">诊断 <small>Diagnostics</small></button><button data-surface="koishi" role="tab" id="tab-koishi" aria-controls="koishi-surface" aria-selected="false" tabindex="-1">Console <small>Koishi</small></button></nav>
+    <div class="transport-story"><span>STORY</span><div class="transport-story-copy"><select id="story-select" aria-label="当前故事"></select><small id="transport-story-meta">选择一个故事</small></div></div>
+    <div class="transport-state"><button data-phase="running" title="运行：正常收发消息与自动推进" aria-label="切换到运行">▶</button><button data-phase="muted" title="静音：仍生成剧本但不发送消息，恢复运行后按剧情继续" aria-label="切换到静音">◐</button><button data-phase="paused" title="暂停：停止自动推进，期间收到的消息进入收件箱等待回放" aria-label="切换到暂停">■</button></div><span class="run-state-text" id="run-state-text" aria-live="polite">离线 · Worker 未加载</span>
+    <span class="resource-state" id="resource-state">Worker --/--</span><span class="clock" id="clock">--:--:--</span>
+    <button id="theme-menu-btn" aria-label="外观与主题（Ctrl+Shift+T）">主题</button>
+<details class="layout-menu"><summary>Layout</summary><div><div class="layout-presets"><button data-view-mode="daily">HOME 日常</button><button data-view-mode="workbench">WORK 工作台</button><button data-view-mode="diagnostics">DIAG 诊断</button></div><button data-panel-toggle="browser">Browser</button><button data-panel-toggle="inspector">Inspector</button><button data-panel-toggle="detail">Detail</button></div></details>
+    <details class="layout-menu" id="more-menu"><summary aria-label="更多操作">⋯</summary><div><button class="responsive-more-action" id="responsive-theme-menu">主题设置</button><button class="responsive-more-action" id="responsive-new-story">新建剧本</button><button id="open-help-menu" title="快捷键与术语帮助（?）">? 帮助</button><button id="import-story-menu">导入剧本</button></div></details><button class="primary" id="new-story" aria-label="新建剧本">＋ 新剧本</button>
+  </header>
+  <button id="inspector-fab" class="inspector-fab" aria-label="查看摘要（Inspector）">▤ 摘要</button>
+<button id="browser-fab" class="inspector-fab" style="left:10px;right:auto" aria-label="打开故事浏览面板">☰ 浏览</button>
+<section class="status-ruler" aria-label="运行状态摘要（可横向滚动）" tabindex="0">
+  <span id="story-phase-readout">未选择故事</span>
+  <span id="story-health">WORKER OFFLINE</span>
+  <span id="bridge-state" class="status-cell">桥：—</span>
+  <span id="channel-state" class="status-cell">通道：未知</span>
+  <span id="model-state" class="status-cell">模型：未知</span>
+  <div class="ruler" aria-hidden="true"><i></i><b></b><em></em></div>
+  <span id="story-timezone">LOCAL TIME</span>
+  <div class="osd-hud" id="osd-hud" role="group" aria-label="实时诊断指标">
+    <div class="osd-row"><span class="osd-label">WRK</span>
+  <span class="osd-value" id="osd-cpu" title="Worker 进程：运行中 / 上限">--</span></div>
+    <div class="osd-row"><span class="osd-label">MEM</span>
+  <span class="osd-value" id="osd-mem" title="渲染进程 JS 堆占用">--%</span></div>
+    <div class="osd-row"><span class="osd-label">RPH</span>
+  <span class="osd-value" id="osd-rph" title="最近 1 小时用户消息数">--</span></div>
+    <div class="osd-row"><span class="osd-label">GAP</span>
+  <span class="osd-value" id="osd-delay" title="最近一次 用户消息 → 角色消息 的时间差（近似）">--</span></div>
+    <canvas id="osd-spark" width="120" height="24" class="osd-spark" title="RPH 历史"></canvas>
+  </div>
+</section>
+        <main class="studio-shell">
+    <aside class="browser-panel" id="browser-panel">
+      <header class="panel-header"><strong>故事浏览<span class="panel-sub">Browser</span></strong><span id="story-count">0 STORIES</span><button class="panel-collapse" data-panel="browser" title="收起 故事浏览" aria-label="收起故事浏览面板">‹</button></header>
+      <div class="browser-tools"><input id="story-filter" placeholder="筛选故事 / 角色…" autocomplete="off" /></div>
+      <div id="story-list" class="story-list"></div>
+      <details class="browser-section" open><summary>SELECTED STORY</summary><div class="browser-stack"><button data-browser-view="overview" class="browser-item active">▦ 故事总览 <small>Overview</small></button><button data-browser-view="session" class="browser-item">▣ 剧本阅读 <small>Session</small></button><button data-browser-view="timeline" class="browser-item">≡ 时间线 <small>Timeline</small></button><button data-browser-view="mixer" class="browser-item" title="行为设置（Mixer）：模型费用/联系节奏/群聊意愿等高密度参数">▮ 行为设置 <small>Mixer</small></button><button data-browser-view="stats" class="browser-item">◫ 运行统计 <small>Stats</small></button>
+<button data-browser-view="analysis" class="browser-item">◇ 语义分析 <small>Analysis</small></button></div></details>
+      <details class="browser-section"><summary>MORE VIEWS</summary><div class="browser-stack"><button data-browser-view="facts" class="browser-item">◇ 事实与场景</button><button data-browser-view="schedule" class="browser-item">▤ 日程计划 Preplan</button><button data-browser-view="settings" class="browser-item">故事配置</button></div></details>
+      <details class="browser-section" open><summary>ONEBOT ACCOUNT</summary><div class="browser-stack" id="account-panel"><small class="account-hint">选择一个剧本后管理其 OneBot 账号。</small></div></details>
+      <details class="browser-section" id="track-menu"><summary>ARRANGEMENT TRACKS <small id="track-menu-count">5 / 5</small></summary><div class="browser-stack"><button class="track-menu-item" data-track-toggle="script" aria-pressed="true" title="剧本主轨：模型写出的生活剧本原文"><i></i><span>Script</span><small id="track-count-script">0</small></button><button class="track-menu-item" data-track-toggle="receive" aria-pressed="true" title="收到的用户私聊与群消息"><i></i><span>Receive</span><small id="track-count-receive">0</small></button><button class="track-menu-item" data-track-toggle="send" aria-pressed="true" title="角色已实际发出的消息与行动"><i></i><span>Send</span><small id="track-count-send">0</small></button><button class="track-menu-item" data-track-toggle="alter" aria-pressed="true" title="情绪惯性轨：氛围的临时偏移（正经↔放松）"><i></i><span>Alter</span><small id="track-count-alter">0</small></button><button class="track-menu-item" data-track-toggle="state" aria-pressed="true" title="事实与场景：长期记忆的结构化投影"><i></i><span>Facts & Scenes</span><small id="track-count-state">0</small></button><button class="track-menu-item" data-track-toggle="preplan" aria-pressed="true" title="近期日程计划（未来半天的结构化安排）"><i></i><span>Schedule Preplan</span><small id="track-count-preplan">0</small></button><button class="track-menu-item" data-track-toggle="media" aria-pressed="true" title="带图片/语音附件的消息"><i></i><span>Media Files</span><small id="track-count-media">0</small></button><button class="track-menu-item" data-track-toggle="compaction" aria-pressed="false" title="场景压缩维护轨：后台记忆整理活动"><i></i><span>Compaction</span><small id="track-count-compaction">0</small></button></div></details>
+      <details class="browser-section utility"><summary>STORY OPERATIONS</summary><div class="browser-stack"><button id="backup-story" class="browser-item">▣ Create Backup</button><button id="export-story" class="browser-item">⇧ Export Folder</button><button id="open-backups" class="browser-item">↗ Backup Location</button></div></details>
+    </aside>
+    <section class="workspace-panel">
+        <div class="grid-resize-handle vertical" id="handle-browser" style="left:0" title="拖动调整 Browser 宽度"></div>
+        <div class="grid-resize-handle vertical" id="handle-inspector" style="right:0" title="拖动调整 Inspector 宽度"></div>
+        <div class="grid-resize-handle horizontal" id="handle-detail" style="bottom:0" title="拖动调整 Detail 高度"></div>
+      <section id="studio-surface" class="surface active" role="tabpanel" aria-labelledby="tab-studio">
+        <header class="workspace-header"><div><strong id="workspace-title">Overview</strong><span id="workspace-subtitle">选择一个故事以开始观察</span></div><div class="workspace-actions"><div class="studio-view-switch" role="group" aria-label="Studio 视图"><button type="button" data-studio-mode="overview" aria-pressed="true">HUD</button><button type="button" data-studio-mode="timeline" aria-pressed="false">Timeline</button></div><div class="time-presets" role="group" aria-label="时间范围"><button data-time-preset="now" class="now-control" title="回到当前时刻并跟随">NOW</button><button data-time-preset="24h" title="最近 24 小时">24h</button><button data-time-preset="7d" title="最近 7 天">7d</button><button data-time-preset="custom" title="输入自定义范围（起止时间）">…</button></div><div class="time-knob-wrap" title="时间尺度：上拉增大范围（旋钮顺时针）、下拉缩小（20s – 30天，双击重置）"><canvas id="time-knob" width="22" height="22" class="time-knob"></canvas><span id="time-knob-label" class="time-knob-label">14h</span></div><span id="timeline-window-label" class="timeline-window-label" aria-live="polite"></span><button id="refresh-timeline" title="刷新时间线投影（F5）">↻ 刷新</button></div></header>
+        <div class="arrangement-ruler" id="arrangement-ruler"><span id="arrange-range-start">PAST</span><div><i></i><i></i><i></i><i></i><i></i></div><span id="arrange-range-end">NOW</span><div class="range-meta" id="arrange-range-meta">LIVE WINDOW</div></div>
+        <div id="studio-mode-viewport" class="studio-mode-viewport" data-studio-view="overview" aria-live="polite">
+          <section id="story-hud" class="story-hud" aria-label="故事概览"></section>
+          <section class="arrangement" id="arrangement" aria-label="时间线轨道"></section>
+          <div id="studio-transition-layer" class="studio-transition-layer" aria-hidden="true"></div>
+        </div>
+        <div class="timeline-scroller-container" id="timeline-scroller-container"></div>
+        
+      </section>
+      <section id="v7-workbench-surface" class="v7-workbench-surface" role="tabpanel" aria-labelledby="tab-studio" hidden aria-live="polite"></section>
+      <section id="logs-surface" class="surface" role="tabpanel" aria-labelledby="tab-logs">
+        <header class="workspace-header">
+          <div><strong>诊断日志</strong><span id="logs-status">主进程日志流 · 当前故事当天记录会从磁盘补齐</span></div>
+          <div class="workspace-actions">
+            <button id="logs-export">导出</button>
+            <button id="logs-clear">清空视图</button>
+            <label class="follow-toggle"><input id="log-follow" type="checkbox" checked /> 跟随新日志</label>
+            <label class="follow-toggle" title="沉浸模式：日志正文在视图/导出中被屏蔽（磁盘原文仍在，见 RELEASE-NOTES 边界）"><input id="log-blind" type="checkbox" /> 隐藏正文</label>
+          </div>
+        </header>
+        <div class="logs-filter-bar">
+          <select id="log-level-filter" aria-label="日志等级" title="等级"></select>
+          <select id="log-source-filter" aria-label="日志来源" title="来源"></select>
+          <input id="log-search" aria-label="搜索日志文本" type="search" placeholder="搜索文本…" autocomplete="off" />
+          <input id="log-correlation" aria-label="关联 ID" type="search" placeholder="correlation ID" autocomplete="off" size="14" />
+          <button id="logs-apply" class="primary">应用</button>
+          <span id="log-backlog" title="暂停期间积累的未渲染记录"></span>
+        </div>
+        <div id="logs-scroll" class="logs-surface-pane"><div id="logs-vlist"></div></div>
+        <div class="logs-footer"><span id="logs-count">0 records</span><span id="logs-range"></span></div>
+      </section>
+      <section id="connect-surface" class="surface" role="tabpanel" aria-labelledby="tab-connect">
+      <header class="workspace-header"><div><strong>连接与账号</strong><span id="connect-subtitle">从零到首次聊天的一站式配置</span></div><div class="workspace-actions"><button id="import-config-btn" class="primary" title="选择插件版 HDS-Interlude 的 koishi.yml，一键转换为本机剧本配置">⤓ 从插件版导入配置</button><button id="connect-recheck" class="primary">↻ 重新检查</button></div></header>
+        <div class="connect-layout">
+          <div class="connect-main" id="connect-main"></div>
+          <aside class="connect-side" id="connect-ready-panel"></aside>
+        </div>
+      </section>
+      <section id="koishi-surface" class="surface" role="tabpanel" aria-labelledby="tab-koishi">
+        <header class="workspace-header">
+          <div><strong>Koishi</strong><span id="koishi-status">Compatibility Surface · 每故事隔离的 loopback Console</span></div>
+          <div class="workspace-actions">
+            <button id="koishi-attach" class="primary">打开 Console</button>
+            <button id="koishi-detach">关闭嵌入</button>
+          </div>
+        </header>
+        <div id="koishi-console-pane" class="koishi-console-pane">
+          <div id="koishi-embed-anchor" class="koishi-embed-anchor"></div>
+          <div id="koishi-overlay" class="koishi-overlay">
+            <div class="placeholder-icon">K</div>
+            <h2 id="koishi-overlay-title">当前故事的 Koishi Console</h2>
+            <p id="koishi-overlay-text">加载 Worker 后，桌面壳会为它注入仅绑定 127.0.0.1 的隔离 Console 端点。端点就绪后即可在这里安全嵌入，页面不获得桌面进程权限。</p>
+            <dl>
+              <div><dt>当前故事</dt><dd id="koishi-story">未选择</dd></div>
+              <div><dt>Worker</dt><dd id="koishi-worker">未加载</dd></div>
+              <div><dt>Console endpoint</dt><dd id="koishi-endpoint">待 Worker 上报</dd></div>
+              <div><dt>嵌入状态</dt><dd id="koishi-embed-state">未嵌入</dd></div>
+            </dl>
+          </div>
+        </div>
+      </section>
+    </section>
+    <aside class="inspector-panel" id="inspector-panel"><header class="panel-header"><strong>故事摘要<span class="panel-sub">Inspector</span></strong><span id="inspector-kind">STORY</span><button class="panel-collapse" data-panel="inspector" title="收起右侧摘要" aria-label="收起右侧摘要">›</button></header><div id="inspector-content" class="inspector-content"><p class="muted-copy">从 Browser 选择一个故事、轨道块或事件，以查看来源、时间和状态。</p></div></aside>
+    <section class="detail-panel" id="detail-panel"><header class="detail-tabs"><button data-detail="script" class="script-tab">剧本</button><button data-detail="events" class="active">事件</button><button data-detail="deliveries">投递</button><button data-detail="usage">模型用量</button><button data-detail="data">原始数据</button><span id="detail-status">READY</span><button class="panel-collapse" data-panel="detail" title="收起下方详情" aria-label="收起下方详情">⌄</button></header><div id="detail-content" class="detail-content"></div></section>
+  </main>
+  <nav id="workbench-dock" class="workbench-dock" aria-label="工作区面板">
+    <span class="dock-label">工作区</span><span class="dock-note">拖动分隔线可调整面板大小</span>
+    <button type="button" data-panel-toggle="browser">故事浏览 <small class="dock-state"></small></button>
+    <button type="button" data-panel-toggle="inspector">右侧摘要 <small class="dock-state"></small></button>
+    <button type="button" data-panel-toggle="detail">下方详情 <small class="dock-state"></small></button>
+  </nav>
+  <dialog id="story-dialog"><form method="dialog" id="story-form"><header><strong id="story-form-title">新建剧本</strong><button type="button" value="cancel" aria-label="关闭">×</button></header>
+    <div class="wizard-body">
+    <div class="wizard-step" data-step="1">
+      <div class="wizard-step-title">步骤 1/6 · 这个角色是谁</div>
+      <label>剧本名称<input name="name" placeholder="水濑 · 小桃线" required /></label>
+      <label>主角名称<input name="characterName" placeholder="水濑" /></label>
+      <label>主角设定（背景/性格/说话方式）<textarea name="characterProfile" rows="4" placeholder="她是一个…"></textarea></label>
+      <details class="wizard-advanced"><summary>高级选项</summary><label>存档 ID（留空自动生成）<input name="id" pattern="[A-Za-z0-9_-]{1,64}" placeholder="自动" /></label></details>
+    </div>
+    <div class="wizard-step" data-step="2" hidden>
+      <div class="wizard-step-title">步骤 2/6 · 从哪里开始</div>
+      <label>世界观<textarea name="world" rows="3" placeholder="现代都市，上海…"></textarea></label>
+      <p class="wizard-hint">故事从当下时刻开始；世界观决定她生活的底色。可留空（默认现代都市）。</p>
+    </div>
+    <div class="wizard-step" data-step="3" hidden>
+      <div class="wizard-step-title">步骤 3/6 · 谁负责生成剧本</div>
+      <div id="wizard-model-status" class="wizard-status">正在检查模型连接…</div>
+      <div class="config-grid" style="grid-template-columns:repeat(2,1fr)">
+        <label>服务类型<select name="providerMode">
+          <option value="openai-compatible">openai-compatible</option>
+          <option value="zhipu-official">zhipu-official</option>
+          <option value="openai-official">openai-official</option>
+          <option value="deepseek-official">deepseek-official</option>
+          <option value="moonshot-official">moonshot-official</option>
+          <option value="dashscope-official">dashscope-official</option>
+          <option value="siliconflow-official">siliconflow-official</option>
+          <option value="openrouter">openrouter</option>
+          <option value="gemini-openai">gemini-openai（旧兼容层）</option>
+          <option value="gemini-interactions">gemini-interactions（推荐）</option>
+        </select></label>
+        <label>模型名<input name="providerModel" placeholder="glm-4.7" /></label>
+        <label>端点（兼容模式需填）<input name="providerEndpoint" placeholder="https://api.example.com/v1" /></label>
+        <label>API Key<input name="providerApiKey" type="password" autocomplete="off" placeholder="sk-…" /></label>
+      </div>
+      <p class="wizard-hint">填写后创建时自动写入新剧本并设为主叙事；留空可稍后在「配置 → 模型提供商」中设置。</p>
+    </div>
+    <div class="wizard-step" data-step="4" hidden>
+      <div class="wizard-step-title">步骤 4/6 · 通过哪个账号联系</div>
+      <div id="wizard-channel-status" class="wizard-status">正在检查渠道…</div>
+      <div class="config-grid" style="grid-template-columns:repeat(2,1fr)">
+        <label>通道类型
+          <select name="botChannelKind">
+            <option value="qq">QQ（OneBot）</option>
+            <option value="wechat">微信（OneBot / 网关）</option>
+            <option value="other">其他 OneBot 通道</option>
+          </select>
+        </label>
+        <label>机器人账号 ID<input name="botSelfId" placeholder="QQ 号或通道账号 ID" autocomplete="off" /></label>
+        <label>外部 OneBot 地址（可选）<input name="botUpstream" placeholder="ws://127.0.0.1:3001" /></label>
+      </div>
+      <p class="wizard-hint">填写后创建时自动完成账号绑定。QQ 使用 5–11 位数字；微信和其它通道使用 4–64 位字母、数字、下划线或连字符。地址须为 ws:// 或 wss://，token 用密钥别名。留空可稍后在「连接」页配置。</p>
+    </div>
+    <div class="wizard-step" data-step="5" hidden>
+      <div class="wizard-step-title">步骤 5/6 · 谁可以和角色聊天</div>
+      <label>交往对象 QQ 号（每人一行）<textarea name="whitelist" rows="3" placeholder="123456789&#10;987654321"></textarea></label>
+      <p class="wizard-hint">留空表示暂不限制（允许所有人）。出于安全建议至少添加一个。</p>
+    </div>
+    <div class="wizard-step" data-step="6" hidden>
+      <div class="wizard-step-title">步骤 6/6 · 创建前检查</div>
+      <div id="wizard-ready-check" class="wizard-status">点击「创建并检查」完成设置。</div>
+    </div>
+    </div>
+    <footer><button type="button" id="wizard-prev" hidden>← 上一步</button><button type="button" id="wizard-skip" hidden>跳过</button><button type="button" id="wizard-next" class="primary">下一步 →</button><button type="submit" id="wizard-submit" class="primary" hidden>创建并检查</button></footer>
+  </form></dialog>
+  <dialog id="config-dialog" class="config-dialog">
+  <form method="dialog" id="config-form">
+    <header>
+      <div><strong id="config-title">剧本配置</strong><small>配置写入前自动备份；Worker 需重载后生效</small></div>
+      <button type="button" value="cancel" aria-label="关闭">×</button>
+    </header>
+    <nav class="config-tabs" role="tablist" aria-label="配置分区">
+      <button type="button" data-config-tab="story" class="active" role="tab" id="config-tab-story" aria-controls="config-panel-story">人设与故事</button>
+      <button type="button" data-config-tab="users" role="tab" id="config-tab-users" aria-controls="config-panel-users">用户白名单</button>
+      <button type="button" data-config-tab="groups" role="tab" id="config-tab-groups" aria-controls="config-panel-groups">群聊管理</button>
+      <button type="button" data-config-tab="bots" role="tab" id="config-tab-bots" aria-controls="config-panel-bots">机器人</button>
+      <button type="button" data-config-tab="providers" role="tab" id="config-tab-providers" aria-controls="config-panel-providers">模型提供商</button>
+      <button type="button" data-config-tab="secrets" role="tab" id="config-tab-secrets" aria-controls="config-panel-secrets">密钥库</button>
+      <button type="button" data-config-tab="plugins" role="tab" id="config-tab-plugins" aria-controls="config-panel-plugins">插件</button>
+      <button type="button" data-config-tab="yaml" role="tab" id="config-tab-yaml" aria-controls="config-panel-yaml">YAML</button>
+    </nav>
+    <p id="config-save-scope" class="config-save-scope"></p>
+    <div class="config-body">
+
+      <div class="config-tab-panel active" data-config-panel="story" role="tabpanel" id="config-panel-story" aria-labelledby="config-tab-story">
+        <div class="cfg-section-title">基本信息</div>
+        <div class="config-grid">
+          <label class="cfg-short">主角名称<input data-cfg="characterName" placeholder="水濑"></label>
+          <label class="cfg-short">主要地点<input data-cfg="location" placeholder="上海"></label>
+          <label class="cfg-short">时区<input data-cfg="timezone" placeholder="Asia/Shanghai"></label>
+        </div>
+        <div class="cfg-section-title">人设</div>
+        <label class="cfg-tall">主角设定（背景/性格/日程/说话方式）<textarea data-cfg="characterProfile" rows="6"></textarea></label>
+        <label class="cfg-tall">主角视角（价值观与看世界的方式）<textarea data-cfg="perspective" rows="3"></textarea></label>
+        <label class="cfg-tall">多条独立视角（每行一条；进入提示词时保持独立条目）<textarea data-cfg="perspectives" data-cfg-array="1" rows="3"></textarea></label>
+        <div class="cfg-section-title">世界</div>
+        <label class="cfg-tall">世界观（时代/地点/现实规则）<textarea data-cfg="world" rows="3"></textarea></label>
+        <label class="cfg-tall">配角（父母/朋友/同事等，每人一行）<textarea data-cfg="supportingCast" rows="3"></textarea></label>
+        <label class="cfg-tall">补充事实（每行一条；界限不明显的世界/人物/关系复杂事实，作为初始长期事实注入）<textarea data-cfg="supplementaryFacts" data-cfg-array="1" rows="3"></textarea></label>
+        <div class="cfg-section-title">叙事</div>
+        <label class="cfg-tall">叙事文风<textarea data-cfg="style" rows="3"></textarea></label>
+        <div class="cfg-section-title">用户默认（可被白名单覆盖）</div>
+        <label class="cfg-tall">默认用户资料<textarea data-cfg="userProfile" rows="2"></textarea></label>
+        <label class="cfg-tall">默认初始关系<textarea data-cfg="relationship" rows="2"></textarea></label>
+      </div>
+
+      <div class="config-tab-panel" data-config-panel="users" role="tabpanel" id="config-panel-users" aria-labelledby="config-tab-users">
+        <div class="cfg-list-header"><span>用户白名单（空白名单 = 启用过滤后拒绝全部私聊）</span><button type="button" class="cfg-add" data-add-row="userAccounts">+ 添加用户</button></div>
+        <div id="cfg-users-list" class="cfg-card-list"></div>
+      </div>
+
+      <div class="config-tab-panel" data-config-panel="groups" role="tabpanel" id="config-panel-groups" aria-labelledby="config-tab-groups">
+        <div class="cfg-list-header"><span>群聊白名单（群成员不需要加入用户白名单）</span><button type="button" class="cfg-add" data-add-row="groupChats">+ 添加群</button></div>
+        <div id="cfg-groups-list" class="cfg-card-list"></div>
+      </div>
+
+      <div class="config-tab-panel" data-config-panel="bots" role="tabpanel" id="config-panel-bots" aria-labelledby="config-tab-bots">
+        <div class="cfg-list-header"><span>机器人账号白名单（启用过滤后生效）</span><button type="button" class="cfg-add" data-add-row="botAccounts">+ 添加机器人</button></div>
+        <div id="cfg-bots-list" class="cfg-card-list"></div>
+      </div>
+
+      <div class="config-tab-panel" data-config-panel="providers" role="tabpanel" id="config-panel-providers" aria-labelledby="config-tab-providers">
+        <div class="cfg-list-header"><span>模型提供商（providers[0] 为主模型）</span><button type="button" class="cfg-add" data-add-row="providers">+ 添加提供商</button></div>
+        <div id="cfg-providers-list" class="cfg-card-list"></div>
+      </div>
+
+      <div class="config-tab-panel" data-config-panel="secrets" role="tabpanel" id="config-panel-secrets" aria-labelledby="config-tab-secrets">
+        <section class="secret-row">
+          <label>本机密钥别名<input id="secret-alias" placeholder="primary-key" autocomplete="off" /></label>
+          <label>密钥内容<input id="secret-value" type="password" placeholder="仅保存到系统安全存储" autocomplete="new-password" /></label>
+          <button type="button" id="save-secret">立即保存密钥</button>
+        </section>
+        <div class="alias-list" id="secret-aliases">尚未读取密钥别名。</div>
+      </div>
+
+      <div class="config-tab-panel" data-config-panel="plugins" role="tabpanel" id="config-panel-plugins" aria-labelledby="config-tab-plugins">
+        <div class="cfg-list-header"><span>插件（koishi.yml plugins 段；停用 = 实例键加 ~ 前缀，配置保留）</span><span class="plugin-add-row"><button type="button" class="cfg-add" id="plugin-console-page-btn" title="为嵌入式 Koishi Console 启用官方插件配置页（@koishijs/plugin-config，随 typ0 附带）">启用 Console 配置页</button><label>插件名称<input id="plugin-add-name" placeholder="如 points" style="width:160px"></label><button type="button" class="cfg-add" id="plugin-add-btn">＋ 添加</button></span></div>
+        <details class="plugin-market">
+          <summary>插件市场（npmmirror）——搜索 · 兼容性 · 一键安装</summary>
+          <div class="plugin-market-bar">
+            <label>搜索插件<input id="plugin-market-query" placeholder="插件名或关键词，如 points / 签到 / wiki"></label>
+            <button type="button" id="plugin-market-search" class="btn">搜索</button>
+            <span id="plugin-market-note" class="muted"></span>
+          </div>
+          <div id="plugin-market-results"></div>
+        </details>
+        <div id="cfg-plugins-list" class="cfg-card-list"><p class="muted">尚未读取。</p></div>
+      </div>
+
+      <div class="config-tab-panel" data-config-panel="yaml" role="tabpanel" id="config-panel-yaml" aria-labelledby="config-tab-yaml">
+        <label class="config-source">koishi.yml 原文（密钥请使用 <code>$secret:别名</code>）<textarea id="config-source" rows="22" spellcheck="false"></textarea></label>
+      </div>
+
+    </div>
+    <footer>
+      <div class="config-feedback"><span id="config-dirty-badge" class="config-dirty-badge" hidden></span><span id="config-status" role="status" aria-live="polite"></span></div>
+      <div class="config-footer-actions"><div class="config-secondary-actions">
+      <button type="button" id="config-preview" title="查看当前草稿相对上次保存的变更">预览变更</button>
+      <button type="button" id="config-revert" title="丢弃全部未保存修改并重新加载">放弃修改</button>
+      </div><div class="config-save-actions"><button type="button" value="cancel" id="config-cancel">关闭</button>
+      <button type="button" id="config-save">仅保存本页</button>
+      <button type="button" class="primary" id="config-save-all">保存全部草稿</button></div></div>
+    </footer>
+  </form>
+</dialog>
+<!-- V3/V7 外观与主题：色板主题 + 独立工作台 Profile + 密度/动效档位（内容由 app.js 动态构建） -->
+<dialog id="theme-dialog" class="theme-dialog">
+  <form method="dialog" id="theme-form">
+    <header><strong>外观与主题</strong><span id="theme-current-label"></span><button type="button" id="theme-close" aria-label="关闭">×</button></header>
+    <div class="theme-controls">
+      <div class="theme-control theme-profile-control"><label for="workspace-profile">工作台</label><div id="workspace-profile" class="theme-seg" role="radiogroup" aria-label="工作台主题"></div></div>
+      <div class="theme-control"><label for="theme-density">密度</label><div id="theme-density" class="theme-seg" role="radiogroup" aria-label="信息密度"></div></div>
+      <div class="theme-control"><label for="theme-motion">动效</label><div id="theme-motion" class="theme-seg" role="radiogroup" aria-label="动效等级"></div></div>
+    </div>
+    <div class="theme-sections" id="theme-sections"></div>
+    <footer><span id="theme-status-note" class="theme-note" aria-live="polite"></span><button type="button" id="theme-reset">恢复默认色板</button></footer>
+  </form>
+</dialog>
+<dialog id="pack-preview-dialog" class="pack-preview-dialog">
+  <form method="dialog" id="pack-preview-form">
+    <header><strong>导入主题包</strong><span id="pack-preview-verdict" class="pack-verdict"></span><button type="button" id="pack-preview-close" aria-label="关闭">×</button></header>
+    <div id="pack-preview-body" class="pack-preview-body"></div>
+    <footer>
+      <span id="pack-preview-note" class="theme-note" aria-live="polite"></span>
+      <button type="button" id="pack-preview-cancel">取消</button>
+      <button type="button" id="pack-preview-confirm">安装</button>
+    </footer>
+  </form>
+</dialog>
+<dialog id="import-dialog" class="import-dialog">
+  <form method="dialog" id="import-form">
+    <header><strong>从插件版导入配置</strong><span id="import-dialog-badge" class="pack-verdict"></span><button type="button" id="import-close" aria-label="关闭">×</button></header>
+    <div id="import-body" class="pack-preview-body"></div>
+    <footer>
+      <span id="import-note" class="theme-note" aria-live="polite"></span>
+      <button type="button" id="import-cancel">取消</button>
+      <button type="button" id="import-run" class="primary">开始导入</button>
+    </footer>
+  </form>
+</dialog>
+<dialog id="prompt-dialog" class="prompt-dialog">
+  <form method="dialog" id="prompt-form">
+    <header><strong id="prompt-title">输入</strong><button type="button" id="prompt-close" aria-label="关闭">×</button></header>
+    <div class="prompt-body">
+      <p id="prompt-message" class="muted-copy"></p>
+      <label id="prompt-label" for="prompt-input"></label>
+      <input id="prompt-input" autocomplete="off" spellcheck="false">
+      <p id="prompt-hint" class="prompt-hint" aria-live="polite"></p>
+    </div>
+    <footer>
+      <button type="button" id="prompt-cancel">取消</button>
+      <button type="submit" id="prompt-confirm" class="primary">确定</button>
+    </footer>
+  </form>
+</dialog>
+  <dialog id="help-dialog"><form method="dialog" id="help-form"><header><strong>快捷键与术语</strong><button type="button" id="help-close" aria-label="关闭">×</button></header>
+    <div class="help-body">
+      <section>
+        <h4>快捷键</h4>
+        <dl class="help-list">
+          <dt>Ctrl + K</dt><dd>全局功能搜索（按目标找设置入口）</dd>
+          <dt>?</dt><dd>打开本帮助</dd>
+          <dt>F5</dt><dd>刷新时间线投影</dd>
+          <dt>Space</dt><dd>循环切换相位：运行 → 静音 → 暂停（焦点在输入框/按钮时不生效）</dd>
+          <dt>1 – 4</dt><dd>切换 Overview / Session / Timeline / Mixer 视图</dd>
+          <dt>Ctrl + 滚轮</dt><dd>以鼠标为锚缩放时间轴；Shift + 滚轮 平移</dd>
+          <dt>Shift + 拖选</dt><dd>在时间轴上框选区间（剧本须为暂停态），松开后可删除该区间</dd>
+          <dt>Esc</dt><dd>关闭菜单 / 清除选区与拖拽状态</dd>
+          <dt>双击时间旋钮</dt><dd>重置缩放为默认 14 小时并回到 NOW</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>隐藏手势</h4>
+        <p class="help-p">故事条、时间轴块、轨道头、底部拖拉条都有<strong>右键菜单</strong>（分支续写、复制全文、隐藏轨道、回到 NOW 等）。桌面端为鼠标交互优化，触屏设备不可用右键菜单。</p>
+      </section>
+      <section>
+        <h4>术语</h4>
+        <dl class="help-list">
+          <dt>Worker</dt><dd>承载一个剧本的 Koishi 子进程；「加载/卸载」即启停它。</dd>
+          <dt>bridge</dt><dd>桌面宿主与 Worker 内 HDSI 插件的通信链路；「bridge 就绪」= 时间线可读。</dd>
+          <dt>运行 / 静音 / 暂停</dt><dd>运行=正常收发与推进；静音=仍生成剧本但不发送消息；暂停=停止推进，期间消息进收件箱。</dd>
+          <dt>Inbox / Outbox</dt><dd>收件箱=等待投递给角色的入站消息（可回放）；出站=角色消息的发送状态账本。</dd>
+          <dt>Script / Receive / Send</dt><dd>剧本主轨（模型写出的生活原文）/ 收到的消息 / 已发出的消息。</dd>
+          <dt>Alter</dt><dd>情绪惯性：氛围的临时偏移，会随时间衰减。</dd>
+          <dt>Facts &amp; Scenes</dt><dd>长期事实与场景的结构化投影（可从剧本原文重建）。</dd>
+          <dt>Schedule Preplan</dt><dd>角色未来半天的日程计划；计划不等于已发生。</dd>
+          <dt>Compaction</dt><dd>后台记忆压缩：把长场景整理为摘要与事实。</dd>
+          <dt>OSD 指标</dt><dd>WRK=Worker 占用，MEM=渲染进程堆内存，RPH=最近一小时消息数，GAP=最近一次收发间隔（近似）。</dd>
+        </dl>
+      </section>
+    </div>
+  </form></dialog>
+
+<script src="./timeline-model.js"></script>
+<script src="./theme/tokens.js"></script>
+<script src="./theme/themes-builtin.js"></script>
+<script src="./theme/compat.js"></script>
+<script src="./theme/theme-runtime.js"></script>
+<script src="./theme/schema.js"></script>
+<script src="./workspace-profile.js"></script>
+<script src="./theme/pack-validator.js"></script>
+<script src="./theme/pack-manager.js"></script>
+<script src="./semantics/view-model.js"></script>
+<script src="./semantics/action-registry.js"></script>
+<script src="./semantics/layout-dsl.js"></script>
+<script src="./semantics/page-runtime.js"></script>
+
+<script src="./app.js"></script>
+</body>
+</html>
+
+
+

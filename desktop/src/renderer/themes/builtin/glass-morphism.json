@@ -1,0 +1,211 @@
+{
+  "category": "style",
+  "id": "glass-morphism",
+  "effects": {
+    "shadows": {
+      "small": "0 4px 12px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.08)",
+      "minimal": "0 2px 8px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.05)",
+      "medium": "0 8px 24px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.1)",
+      "xlarge": "0 20px 48px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.15)",
+      "large": "0 12px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.12)",
+      "none": "none"
+    },
+    "glowIntensity": 0.35,
+    "opacity": {
+      "disabled": 0.4,
+      "muted": 0.65,
+      "normal": 0.9
+    },
+    "gradientsEnabled": true,
+    "glowEnabled": true,
+    "glowColors": {
+      "accent": "0 0 24px rgba(139,92,246,0.4)",
+      "subtle": "0 0 16px rgba(139,92,246,0.25)"
+    },
+    "shadowStyle": "soft",
+    "backdropBlur": "12px",
+    "gradientAngle": "135deg"
+  },
+  "name": "Glass Morphism",
+  "colors": {
+    "text": {
+      "secondary": "#d0d0e8",
+      "muted": "#707088",
+      "primary": "#f0f0ff",
+      "tertiary": "#a0a0c0"
+    },
+    "tracks": {
+      "media": [
+        "#f59e0b",
+        "#fbbf24"
+      ],
+      "receive": [
+        "#3b82f6",
+        "#60a5fa"
+      ],
+      "state": [
+        "#10b981",
+        "#34d399"
+      ],
+      "script": [
+        "#8b5cf6",
+        "#a78bfa"
+      ],
+      "send": [
+        "#06b6d4",
+        "#22d3ee"
+      ],
+      "alter": [
+        "#ec4899",
+        "#f472b6"
+      ]
+    },
+    "status": {
+      "success": "#10b981",
+      "warning": "#f59e0b",
+      "info": "#3b82f6",
+      "error": "#ef4444"
+    },
+    "accent": {
+      "secondary": "#06b6d4",
+      "primary": "#8b5cf6",
+      "tertiary": "#ec4899"
+    },
+    "background": {
+      "panel": "#2a2a3f",
+      "highlight": "#35354f",
+      "elevated": "#1f1f2f",
+      "canvas": "#0a0a0f",
+      "surface": "#15151f"
+    }
+  },
+  "geometry": {
+    "style": "rounded",
+    "borderWidth": {
+      "thick": "2px",
+      "thin": "1px",
+      "normal": "1px"
+    },
+    "borderRadius": {
+      "small": "8px",
+      "minimal": "4px",
+      "medium": "16px",
+      "xlarge": "24px",
+      "large": "20px",
+      "full": "999px",
+      "none": "0px"
+    },
+    "outlineStyle": "solid"
+  },
+  "spacing": {
+    "base": 8,
+    "values": {
+      "md": "12px",
+      "xl": "24px",
+      "sm": "8px",
+      "lg": "16px",
+      "xs": "4px",
+      "3xl": "40px",
+      "2xl": "32px"
+    },
+    "density": "standard",
+    "lineHeight": {
+      "tight": 1.25,
+      "relaxed": 1.75,
+      "normal": 1.5
+    },
+    "scale": 1.0
+  },
+  "animation": {
+    "defaultDuration": "slow",
+    "easing": {
+      "easeOut": "cubic-bezier(0.22, 1, 0.36, 1)"
+    },
+    "duration": {
+      "fast": "200ms",
+      "slow": "400ms",
+      "instant": "0ms",
+      "slower": "600ms",
+      "normal": "300ms"
+    },
+    "defaultEasing": "easeOut",
+    "enabled": true,
+    "speed": "slow"
+  },
+  "typography": {
+    "letterSpacing": {
+      "tight": "-0.01em",
+      "wide": "0.02em",
+      "normal": "0"
+    },
+    "fontFamily": {
+      "mono": "JetBrains Mono, monospace",
+      "ui": "Inter, sans-serif",
+      "display": "Inter, sans-serif"
+    },
+    "fontWeight": {
+      "bold": 700,
+      "semibold": 600,
+      "medium": 500,
+      "normal": 400
+    },
+    "fontSize": {
+      "md": "14px",
+      "base": "13px",
+      "sm": "12px",
+      "xl": "18px",
+      "lg": "16px",
+      "xs": "11px"
+    }
+  },
+  "presets": {
+    "animationLevel": "normal",
+    "visualStyle": "glass",
+    "densityPreset": "standard"
+  },
+  "version": "2.0.0",
+  "description": "毛玻璃风格，现代时尚",
+  "author": "HDSI Team",
+  "components": {
+    "clip": {
+      "borderWidth": "thin",
+      "shadow": "medium",
+      "borderRadius": "large",
+      "padding": "md"
+    },
+    "track": {
+      "shadow": "small",
+      "borderRadius": "medium",
+      "height": "34px"
+    },
+    "button": {
+      "shadow": "medium",
+      "borderRadius": "xlarge",
+      "height": {
+        "lg": "34px",
+        "sm": "26px",
+        "md": "30px"
+      },
+      "hoverTransform": "translateY(-2px)",
+      "fontWeight": "medium",
+      "paddingX": {
+        "lg": "18px",
+        "sm": "10px",
+        "md": "14px"
+      }
+    },
+    "panel": {
+      "borderRadius": "xlarge",
+      "shadow": "medium",
+      "padding": "lg"
+    },
+    "input": {
+      "borderWidth": "thin",
+      "borderRadius": "large",
+      "height": "30px",
+      "fontSize": "base",
+      "paddingX": "12px"
+    }
+  },
+  "colorScheme": "dark"
+}

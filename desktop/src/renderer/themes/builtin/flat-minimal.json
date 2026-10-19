@@ -1,0 +1,211 @@
+{
+  "components": {
+    "input": {
+      "borderRadius": "none",
+      "paddingX": "8px",
+      "fontSize": "base",
+      "height": "26px",
+      "borderWidth": "thin"
+    },
+    "panel": {
+      "borderRadius": "none",
+      "padding": "sm",
+      "shadow": "none"
+    },
+    "button": {
+      "fontWeight": "normal",
+      "height": {
+        "sm": "22px",
+        "lg": "30px",
+        "md": "26px"
+      },
+      "shadow": "none",
+      "borderRadius": "none",
+      "paddingX": {
+        "sm": "6px",
+        "lg": "14px",
+        "md": "10px"
+      },
+      "hoverTransform": "none"
+    },
+    "clip": {
+      "borderRadius": "none",
+      "borderWidth": "thin",
+      "shadow": "none",
+      "padding": "xs"
+    },
+    "track": {
+      "borderRadius": "none",
+      "height": "28px",
+      "shadow": "none"
+    }
+  },
+  "spacing": {
+    "density": "compact",
+    "lineHeight": {
+      "tight": 1.2,
+      "normal": 1.3,
+      "relaxed": 1.5
+    },
+    "values": {
+      "2xl": "28px",
+      "md": "10px",
+      "lg": "14px",
+      "xs": "2px",
+      "3xl": "36px",
+      "xl": "20px",
+      "sm": "6px"
+    },
+    "base": 6,
+    "scale": 0.85
+  },
+  "effects": {
+    "shadowStyle": "none",
+    "backdropBlur": "0px",
+    "glowEnabled": false,
+    "glowColors": {
+      "accent": "none",
+      "subtle": "none"
+    },
+    "glowIntensity": 0,
+    "opacity": {
+      "disabled": 0.5,
+      "normal": 1.0,
+      "muted": 0.7
+    },
+    "gradientsEnabled": false,
+    "shadows": {
+      "xlarge": "none",
+      "large": "none",
+      "none": "none",
+      "minimal": "none",
+      "medium": "none",
+      "small": "none"
+    },
+    "gradientAngle": "180deg"
+  },
+  "presets": {
+    "animationLevel": "none",
+    "densityPreset": "compact",
+    "visualStyle": "flat"
+  },
+  "typography": {
+    "fontWeight": {
+      "semibold": 600,
+      "medium": 500,
+      "bold": 700,
+      "normal": 400
+    },
+    "letterSpacing": {
+      "tight": "0",
+      "normal": "0",
+      "wide": "0"
+    },
+    "fontFamily": {
+      "display": "system-ui, sans-serif",
+      "ui": "system-ui, sans-serif",
+      "mono": "Consolas, monospace"
+    },
+    "fontSize": {
+      "md": "13px",
+      "base": "12px",
+      "xs": "10px",
+      "lg": "14px",
+      "xl": "16px",
+      "sm": "11px"
+    }
+  },
+  "author": "HDSI Team",
+  "colors": {
+    "accent": {
+      "secondary": "#cccccc",
+      "primary": "#ffffff",
+      "tertiary": "#999999"
+    },
+    "tracks": {
+      "script": [
+        "#ffffff",
+        "#ffffff"
+      ],
+      "state": [
+        "#00ff88",
+        "#00ff88"
+      ],
+      "receive": [
+        "#00aaff",
+        "#00aaff"
+      ],
+      "alter": [
+        "#ff6699",
+        "#ff6699"
+      ],
+      "media": [
+        "#ffaa00",
+        "#ffaa00"
+      ],
+      "send": [
+        "#aa88ff",
+        "#aa88ff"
+      ]
+    },
+    "background": {
+      "surface": "#222222",
+      "elevated": "#2a2a2a",
+      "canvas": "#1a1a1a",
+      "highlight": "#3d3d3d",
+      "panel": "#333333"
+    },
+    "text": {
+      "secondary": "#b8b8b8",
+      "primary": "#e8e8e8",
+      "tertiary": "#888888",
+      "muted": "#666666"
+    },
+    "status": {
+      "success": "#00ff88",
+      "error": "#ff4444",
+      "info": "#00aaff",
+      "warning": "#ffaa00"
+    }
+  },
+  "description": "极简平面设计，最高信息密度",
+  "version": "2.0.0",
+  "geometry": {
+    "borderRadius": {
+      "xlarge": "0px",
+      "full": "999px",
+      "large": "0px",
+      "none": "0px",
+      "minimal": "0px",
+      "medium": "0px",
+      "small": "0px"
+    },
+    "borderWidth": {
+      "thick": "1px",
+      "thin": "1px",
+      "normal": "1px"
+    },
+    "style": "sharp",
+    "outlineStyle": "solid"
+  },
+  "id": "flat-minimal",
+  "animation": {
+    "defaultDuration": "instant",
+    "speed": "instant",
+    "duration": {
+      "slow": "0ms",
+      "normal": "0ms",
+      "fast": "0ms",
+      "instant": "0ms",
+      "slower": "0ms"
+    },
+    "easing": {
+      "easeOut": "linear"
+    },
+    "defaultEasing": "linear",
+    "enabled": false
+  },
+  "category": "style",
+  "name": "Flat Minimal",
+  "colorScheme": "dark"
+}

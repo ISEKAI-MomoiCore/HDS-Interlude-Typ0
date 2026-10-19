@@ -1,0 +1,105 @@
+/* Content-to-border spacing. Component-scoped: do not inflate transport icons,
+   timeline geometry, range inputs, checkboxes, resize rails or V7 composition. */
+
+
+/* Toolbar text is not an icon: give its label a real interior. */
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .workspace-actions > button {
+  min-height:32px; padding:6px 12px; line-height:1.5;
+}
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) :is(.studio-view-switch,.time-presets) button {
+  height:auto; min-height:30px; padding:5px 10px; line-height:1.5;
+}
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .browser-item {
+  min-height:36px; padding:9px 10px; line-height:1.5;
+}
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .browser-item.active { padding-left:10px; }
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .browser-tools input {
+  box-sizing:border-box; height:36px; padding:8px 12px; line-height:1.5;
+}
+html[data-hdsi-theme] :is(.account-card-actions,.step-actions,.wiz-actions,.wiz-probe) button,
+html[data-hdsi-theme] #account-panel button {
+  min-height:34px; padding:8px 12px; line-height:1.5;
+}
+
+/* Summary cells were only 5px inset. Keep labels away from all four rules. */
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .context-inspector-section .inspect-grid > div {
+  padding:10px; min-width:0;
+}
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .context-inspector-section .inspect-grid dt { line-height:1.5; }
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .context-inspector-section .inspect-grid dd { margin-top:6px; }
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .context-inspector-section h4 {
+  padding-bottom:8px; margin-bottom:10px; gap:10px; line-height:1.5;
+}
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .context-route-row { padding:8px 6px; gap:10px; }
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .context-endpoint { padding:8px 6px; }
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .inspector-actions {
+  bottom:-20px; margin:16px -16px -20px; padding:12px 16px;
+  display:flex; flex-wrap:wrap; gap:8px; background:var(--hdsi-color-surface);
+}
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .inspector-actions button {
+  min-height:34px; padding:7px 10px; line-height:1.5;
+}
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .detail-row { padding:12px 16px; }
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .detail-content pre { padding:16px 20px; }
+
+/* Editable values need the same space as prose, including expanded fields. */
+html[data-hdsi-theme] :is(.mixer-actions button,.preset-btn) {
+  min-height:36px; padding:7px 12px; line-height:1.5;
+}
+html[data-hdsi-theme] .mixer-toggle { min-height:36px; padding:8px 12px; line-height:1.5; }
+html[data-hdsi-theme] :is(.mixer-number,.mixer-select) {
+  box-sizing:border-box; height:38px; padding:8px 12px; line-height:1.5;
+}
+html[data-hdsi-theme] .mixer-number { width:76px; min-width:76px; }
+html[data-hdsi-theme] .mixer-select { padding-right:32px; }
+html[data-hdsi-theme] :is(.mixer-text,.story-quick textarea) { padding:12px 14px; }
+html[data-hdsi-theme] .logs-filter-bar :is(input:not([type="checkbox"]),select,button) {
+  box-sizing:border-box; min-height:36px; padding:7px 12px; line-height:1.5;
+}
+html[data-hdsi-theme] .logs-filter-bar select { padding-right:32px; }
+
+/* All eight config tabs: normal/identity/expanded inputs share one rhythm. */
+html[data-hdsi-theme] #config-form .cfg-card { padding:18px; }
+html[data-hdsi-theme] #config-form :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select) {
+  box-sizing:border-box; height:38px; min-height:38px;
+  padding:8px 12px; font-size:13px; line-height:1.5;
+}
+html[data-hdsi-theme] #config-form select { padding-right:32px; }
+html[data-hdsi-theme] #config-form textarea { padding:12px 14px; }
+html[data-hdsi-theme] #config-form #config-source { padding:16px 18px; }
+html[data-hdsi-theme] #config-form :is(.cfg-add,.cfg-del,.cfg-expand-toggle,.secret-row button,.plugin-add-row button,.plugin-market-bar button) {
+  min-height:36px; padding:8px 12px; line-height:1.5;
+}
+html[data-hdsi-theme] #config-form .cfg-card-header .cfg-del { padding:8px 12px; }
+html[data-hdsi-theme] #config-form .cfg-toggle-mini { min-height:36px; padding:8px 12px; }
+html[data-hdsi-theme] #config-form footer button { min-height:36px; padding:8px 12px; line-height:1.5; }
+html[data-hdsi-theme] #config-form :is(.cfg-field,.cfg-short,.cfg-tall) { gap:8px; }
+
+/* Setup/account dialogs, search and appearance: no browser-default insets. */
+html[data-hdsi-theme] :is(#story-dialog,.account-wizard,.fork-dialog) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select) {
+  box-sizing:border-box; min-height:38px; padding:8px 12px; line-height:1.5;
+}
+html[data-hdsi-theme] :is(#story-dialog,.account-wizard,.fork-dialog) select { padding-right:32px; }
+html[data-hdsi-theme] :is(#story-dialog,.account-wizard,.fork-dialog) textarea { padding:12px 14px; }
+html[data-hdsi-theme] .wizard-status { padding:12px 14px; line-height:1.6; }
+html[data-hdsi-theme] :is(#story-dialog,.fork-dialog) footer button { min-height:36px; padding:8px 12px; line-height:1.5; }
+html[data-hdsi-theme] .theme-section-title { padding:8px 0; line-height:1.5; }
+html[data-hdsi-theme] .theme-card { padding:16px; gap:10px; }
+html[data-hdsi-theme] .theme-seg button { min-height:34px; padding:8px 12px; line-height:1.5; }
+html[data-hdsi-theme] .theme-pack-actions { flex-wrap:wrap; }
+html[data-hdsi-theme] .theme-pack-actions button { min-height:36px; padding:8px 12px; line-height:1.5; }
+html[data-hdsi-theme] #theme-reset { min-height:36px; padding:8px 12px; line-height:1.5; }
+html[data-hdsi-theme] #global-search-input { box-sizing:border-box; height:auto; min-height:48px; padding:12px 16px; line-height:1.5; }
+
+@media(max-width:760px) {
+  html[data-hdsi-theme] #config-form .cfg-card { padding:16px; }
+  /* Keep useful insets at small sizes; wrap/scroll the existing containers
+     rather than squeeze text against the border again. */
+  html[data-hdsi-theme] #config-form footer button { padding:8px 10px; }
+}
+/* Larger navigation rows must scroll inside their panel, never spill over the
+   bottom dock when account hints or long story names make the rail taller. */
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .browser-panel {
+  min-height:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain;
+}
+html[data-hdsi-theme]:not([data-hdsi-workspace="v7"]) .browser-tools input { width:100%; min-width:0; }

@@ -1,0 +1,227 @@
+{
+  "description": "北欧极光配色，冷静专业",
+  "colors": {
+    "text": {
+      "muted": "#a3abb8",
+      "tertiary": "#d8dee9",
+      "primary": "#eceff4",
+      "secondary": "#e5e9f0"
+    },
+    "status": {
+      "warning": "#ebcb8b",
+      "success": "#a3be8c",
+      "error": "#bf616a",
+      "info": "#88c0d0"
+    },
+    "accent": {
+      "tertiary": "#5e81ac",
+      "primary": "#88c0d0",
+      "secondary": "#81a1c1"
+    },
+    "tracks": {
+      "media": [
+        "#ebcb8b",
+        "#f0d9a3"
+      ],
+      "script": [
+        "#88c0d0",
+        "#8fbcbb"
+      ],
+      "alter": [
+        "#b48ead",
+        "#c89dbe"
+      ],
+      "state": [
+        "#a3be8c",
+        "#b5cea1"
+      ],
+      "receive": [
+        "#5e81ac",
+        "#81a1c1"
+      ],
+      "send": [
+        "#81a1c1",
+        "#a3adc4"
+      ]
+    },
+    "background": {
+      "elevated": "#434c5e",
+      "canvas": "#2e3440",
+      "highlight": "#5e6b82",
+      "panel": "#4c566a",
+      "surface": "#3b4252"
+    }
+  },
+  "presets": {
+    "densityPreset": "standard",
+    "animationLevel": "minimal",
+    "visualStyle": "flat"
+  },
+  "id": "nord",
+  "name": "Nord",
+  "category": "color",
+  "spacing": {
+    "values": {
+      "xl": "24px",
+      "lg": "16px",
+      "2xl": "32px",
+      "md": "12px",
+      "3xl": "40px",
+      "sm": "8px",
+      "xs": "4px"
+    },
+    "lineHeight": {
+      "tight": 1.25,
+      "relaxed": 1.75,
+      "normal": 1.5
+    },
+    "scale": 1.0,
+    "density": "standard",
+    "base": 8
+  },
+  "components": {
+    "track": {
+      "borderRadius": "minimal",
+      "separatorWidth": "1px",
+      "height": "32px",
+      "shadow": "none"
+    },
+    "panel": {
+      "borderRadius": "small",
+      "backdropBlur": "0px",
+      "shadow": "minimal",
+      "padding": "md"
+    },
+    "button": {
+      "textTransform": "none",
+      "paddingX": {
+        "lg": "16px",
+        "md": "12px",
+        "sm": "8px"
+      },
+      "borderRadius": "small",
+      "fontWeight": "medium",
+      "shadow": "minimal",
+      "hoverTransform": "none",
+      "height": {
+        "lg": "32px",
+        "md": "28px",
+        "sm": "24px"
+      }
+    },
+    "card": {
+      "borderRadius": "medium",
+      "borderWidth": "thin",
+      "shadow": "small",
+      "padding": "lg"
+    },
+    "input": {
+      "borderRadius": "small",
+      "paddingX": "10px",
+      "borderWidth": "thin",
+      "height": "28px",
+      "fontSize": "base"
+    },
+    "clip": {
+      "borderRadius": "small",
+      "borderWidth": "thin",
+      "shadow": "minimal",
+      "padding": "sm"
+    }
+  },
+  "effects": {
+    "backdropBlur": "0px",
+    "glowColors": {
+      "subtle": "none",
+      "accent": "none"
+    },
+    "glowEnabled": false,
+    "shadowStyle": "minimal",
+    "gradientAngle": "180deg",
+    "opacity": {
+      "muted": 0.7,
+      "disabled": 0.5,
+      "normal": 1.0
+    },
+    "shadows": {
+      "large": "0 8px 16px rgba(0,0,0,0.3)",
+      "small": "0 2px 4px rgba(0,0,0,0.2)",
+      "none": "none",
+      "minimal": "0 1px 3px rgba(0,0,0,0.15)",
+      "xlarge": "0 16px 32px rgba(0,0,0,0.35)",
+      "medium": "0 4px 8px rgba(0,0,0,0.25)"
+    },
+    "gradientStops": 2,
+    "gradientsEnabled": false,
+    "glowIntensity": 0
+  },
+  "geometry": {
+    "outlineStyle": "solid",
+    "borderRadius": {
+      "full": "999px",
+      "large": "6px",
+      "small": "4px",
+      "none": "0px",
+      "minimal": "2px",
+      "xlarge": "8px",
+      "medium": "4px"
+    },
+    "borderWidth": {
+      "thin": "1px",
+      "normal": "1px",
+      "thick": "2px"
+    },
+    "style": "minimal"
+  },
+  "animation": {
+    "duration": {
+      "slow": "250ms",
+      "slower": "350ms",
+      "normal": "150ms",
+      "fast": "100ms",
+      "instant": "0ms"
+    },
+    "defaultDuration": "fast",
+    "enabled": true,
+    "speed": "fast",
+    "easing": {
+      "ease": "ease",
+      "easeInOut": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "easeIn": "cubic-bezier(0.4, 0, 1, 1)",
+      "bounce": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)",
+      "linear": "linear"
+    },
+    "defaultEasing": "easeOut"
+  },
+  "version": "2.0.0",
+  "author": "Arctic Ice Studio",
+  "preview": "./previews/nord.png",
+  "typography": {
+    "fontWeight": {
+      "medium": 500,
+      "bold": 700,
+      "normal": 400,
+      "semibold": 600
+    },
+    "fontSize": {
+      "xl": "18px",
+      "lg": "16px",
+      "base": "13px",
+      "md": "14px",
+      "sm": "12px",
+      "xs": "11px"
+    },
+    "fontFamily": {
+      "ui": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "display": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "mono": "JetBrains Mono, Consolas, 'Courier New', monospace"
+    },
+    "letterSpacing": {
+      "wide": "0.02em",
+      "tight": "-0.01em",
+      "normal": "0"
+    }
+  },
+  "colorScheme": "dark"
+}

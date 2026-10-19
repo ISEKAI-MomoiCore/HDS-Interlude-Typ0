@@ -1,0 +1,211 @@
+{
+  "category": "style",
+  "id": "minimalist-pro",
+  "effects": {
+    "shadows": {
+      "small": "0 1px 3px rgba(0,0,0,0.08)",
+      "minimal": "0 1px 2px rgba(0,0,0,0.05)",
+      "medium": "0 2px 4px rgba(0,0,0,0.1)",
+      "xlarge": "0 8px 16px rgba(0,0,0,0.15)",
+      "large": "0 4px 8px rgba(0,0,0,0.12)",
+      "none": "none"
+    },
+    "glowIntensity": 0,
+    "opacity": {
+      "disabled": 0.5,
+      "muted": 0.7,
+      "normal": 1.0
+    },
+    "gradientsEnabled": false,
+    "glowEnabled": false,
+    "glowColors": {
+      "accent": "none",
+      "subtle": "none"
+    },
+    "shadowStyle": "minimal",
+    "backdropBlur": "0px",
+    "gradientAngle": "180deg"
+  },
+  "name": "Minimalist Pro",
+  "colors": {
+    "text": {
+      "secondary": "#cccccc",
+      "muted": "#666666",
+      "primary": "#ffffff",
+      "tertiary": "#999999"
+    },
+    "tracks": {
+      "media": [
+        "#606060",
+        "#505050"
+      ],
+      "receive": [
+        "#e0e0e0",
+        "#d0d0d0"
+      ],
+      "state": [
+        "#808080",
+        "#707070"
+      ],
+      "script": [
+        "#ffffff",
+        "#f0f0f0"
+      ],
+      "send": [
+        "#c0c0c0",
+        "#b0b0b0"
+      ],
+      "alter": [
+        "#a0a0a0",
+        "#909090"
+      ]
+    },
+    "status": {
+      "success": "#ffffff",
+      "warning": "#ffffff",
+      "info": "#ffffff",
+      "error": "#ffffff"
+    },
+    "accent": {
+      "secondary": "#e0e0e0",
+      "primary": "#ffffff",
+      "tertiary": "#b0b0b0"
+    },
+    "background": {
+      "panel": "#333333",
+      "highlight": "#404040",
+      "elevated": "#262626",
+      "canvas": "#0d0d0d",
+      "surface": "#1a1a1a"
+    }
+  },
+  "geometry": {
+    "style": "minimal",
+    "borderWidth": {
+      "thick": "1px",
+      "thin": "1px",
+      "normal": "1px"
+    },
+    "borderRadius": {
+      "small": "2px",
+      "minimal": "1px",
+      "medium": "2px",
+      "xlarge": "4px",
+      "large": "3px",
+      "full": "999px",
+      "none": "0px"
+    },
+    "outlineStyle": "solid"
+  },
+  "spacing": {
+    "base": 6,
+    "values": {
+      "md": "10px",
+      "xl": "20px",
+      "sm": "6px",
+      "lg": "14px",
+      "xs": "2px",
+      "3xl": "36px",
+      "2xl": "28px"
+    },
+    "density": "compact",
+    "lineHeight": {
+      "tight": 1.2,
+      "relaxed": 1.55,
+      "normal": 1.35
+    },
+    "scale": 0.85
+  },
+  "animation": {
+    "defaultDuration": "fast",
+    "easing": {
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)"
+    },
+    "duration": {
+      "fast": "80ms",
+      "slow": "200ms",
+      "instant": "0ms",
+      "slower": "280ms",
+      "normal": "120ms"
+    },
+    "defaultEasing": "easeOut",
+    "enabled": true,
+    "speed": "fast"
+  },
+  "typography": {
+    "letterSpacing": {
+      "tight": "0",
+      "wide": "0.01em",
+      "normal": "0"
+    },
+    "fontFamily": {
+      "mono": "Consolas, monospace",
+      "ui": "system-ui, sans-serif",
+      "display": "system-ui, sans-serif"
+    },
+    "fontWeight": {
+      "bold": 600,
+      "semibold": 500,
+      "medium": 400,
+      "normal": 400
+    },
+    "fontSize": {
+      "md": "13px",
+      "base": "12px",
+      "sm": "11px",
+      "xl": "16px",
+      "lg": "14px",
+      "xs": "10px"
+    }
+  },
+  "presets": {
+    "animationLevel": "minimal",
+    "visualStyle": "minimal",
+    "densityPreset": "compact"
+  },
+  "version": "2.0.0",
+  "description": "极简专业，纯粹工作",
+  "author": "HDSI Team",
+  "components": {
+    "clip": {
+      "borderWidth": "thin",
+      "shadow": "minimal",
+      "borderRadius": "small",
+      "padding": "xs"
+    },
+    "track": {
+      "shadow": "none",
+      "borderRadius": "minimal",
+      "height": "28px"
+    },
+    "button": {
+      "shadow": "minimal",
+      "borderRadius": "small",
+      "height": {
+        "lg": "30px",
+        "sm": "22px",
+        "md": "26px"
+      },
+      "hoverTransform": "none",
+      "fontWeight": "normal",
+      "paddingX": {
+        "lg": "14px",
+        "sm": "6px",
+        "md": "10px"
+      }
+    },
+    "panel": {
+      "borderRadius": "small",
+      "shadow": "minimal",
+      "padding": "sm"
+    },
+    "input": {
+      "borderWidth": "thin",
+      "borderRadius": "small",
+      "height": "26px",
+      "fontSize": "base",
+      "paddingX": "8px"
+    }
+  },
+  "colorScheme": "dark"
+}

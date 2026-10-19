@@ -1,0 +1,244 @@
+{
+  "id": "cyberpunk-neon",
+  "name": "Cyberpunk Neon",
+  "version": "2.0.0",
+  "author": "HDSI Team",
+  "category": "custom",
+  "description": "赛博朋克霓虹风格，炫酷发光效果",
+  "preview": "./previews/cyberpunk-neon.png",
+  "colors": {
+    "background": {
+      "canvas": "#000000",
+      "surface": "#0a0a0a",
+      "elevated": "#141414",
+      "highlight": "#1e1e1e",
+      "panel": "#0a0a0a"
+    },
+    "text": {
+      "primary": "#00ffff",
+      "secondary": "#00d4ff",
+      "tertiary": "#0099cc",
+      "muted": "#006688"
+    },
+    "sidebar": {
+      "bg": "#0a0a0a",
+      "text": "#00ffff",
+      "textDim": "#0099cc",
+      "hover": "#141414",
+      "active": "#1e1e1e"
+    },
+    "accent": {
+      "primary": "#00d4ff",
+      "secondary": "#ff006e",
+      "tertiary": "#00ff88"
+    },
+    "status": {
+      "success": "#00ff88",
+      "warning": "#ffc900",
+      "error": "#ff006e",
+      "info": "#00d4ff"
+    },
+    "tracks": {
+      "script": [
+        "#00d4ff",
+        "#00ffff"
+      ],
+      "receive": [
+        "#00ff88",
+        "#00ffaa"
+      ],
+      "send": [
+        "#ffc900",
+        "#ffee00"
+      ],
+      "alter": [
+        "#ff006e",
+        "#ff3388"
+      ],
+      "media": [
+        "#a855f7",
+        "#d084fc"
+      ],
+      "state": [
+        "#00d4ff",
+        "#00ffff"
+      ]
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "ui": "'JetBrains Mono', 'Courier New', monospace",
+      "display": "'JetBrains Mono', monospace",
+      "mono": "'JetBrains Mono', Consolas, monospace"
+    },
+    "fontSize": {
+      "xs": "10px",
+      "sm": "11px",
+      "base": "12px",
+      "md": "13px",
+      "lg": "15px",
+      "xl": "17px"
+    },
+    "fontWeight": {
+      "normal": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "letterSpacing": {
+      "tight": "0",
+      "normal": "0.02em",
+      "wide": "0.05em"
+    }
+  },
+  "spacing": {
+    "base": 8,
+    "scale": 1.0,
+    "density": "standard",
+    "values": {
+      "xs": "4px",
+      "sm": "8px",
+      "md": "12px",
+      "lg": "16px",
+      "xl": "24px",
+      "2xl": "32px",
+      "3xl": "40px"
+    },
+    "lineHeight": {
+      "tight": 1.25,
+      "normal": 1.5,
+      "relaxed": 1.75
+    }
+  },
+  "geometry": {
+    "style": "sharp",
+    "borderRadius": {
+      "none": "0px",
+      "minimal": "1px",
+      "small": "3px",
+      "medium": "4px",
+      "large": "6px",
+      "xlarge": "8px",
+      "full": "999px"
+    },
+    "borderWidth": {
+      "thin": "1px",
+      "normal": "2px",
+      "thick": "3px"
+    },
+    "outlineStyle": "solid"
+  },
+  "effects": {
+    "shadowStyle": "xlarge",
+    "shadows": {
+      "none": "none",
+      "minimal": "0 1px 2px rgba(0,212,255,0.3)",
+      "small": "0 2px 4px rgba(0,212,255,0.4)",
+      "medium": "0 4px 8px rgba(0,212,255,0.5)",
+      "large": "0 8px 16px rgba(0,212,255,0.6)",
+      "xlarge": "0 16px 32px rgba(0,212,255,0.7), 0 0 48px rgba(0,212,255,0.4)"
+    },
+    "glowEnabled": true,
+    "glowIntensity": 1.0,
+    "glowColors": {
+      "accent": "0 0 30px rgba(0,212,255,0.8), 0 0 60px rgba(0,212,255,0.5), 0 0 90px rgba(0,212,255,0.3)",
+      "subtle": "0 0 15px rgba(0,212,255,0.4), 0 0 30px rgba(0,212,255,0.2)"
+    },
+    "gradientsEnabled": true,
+    "gradientAngle": "135deg",
+    "gradientStops": 2,
+    "backdropBlur": "0px",
+    "opacity": {
+      "normal": 1.0,
+      "muted": 0.7,
+      "disabled": 0.4
+    }
+  },
+  "animation": {
+    "enabled": true,
+    "speed": "fast",
+    "defaultDuration": "150ms",
+    "defaultEasing": "bounce",
+    "duration": {
+      "instant": "0ms",
+      "fast": "100ms",
+      "normal": "150ms",
+      "slow": "250ms",
+      "slower": "350ms"
+    },
+    "easing": {
+      "linear": "linear",
+      "ease": "ease",
+      "easeIn": "cubic-bezier(0.4, 0, 1, 1)",
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)",
+      "easeInOut": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "bounce": "cubic-bezier(0.68, -0.55, 0.265, 1.55)"
+    }
+  },
+  "components": {
+    "button": {
+      "height": {
+        "sm": "24px",
+        "md": "28px",
+        "lg": "32px"
+      },
+      "paddingX": {
+        "sm": "8px",
+        "md": "12px",
+        "lg": "16px"
+      },
+      "borderRadius": "small",
+      "fontWeight": "bold",
+      "shadow": "xlarge",
+      "hoverTransform": "translateY(-2px)",
+      "textTransform": "uppercase"
+    },
+    "input": {
+      "height": "28px",
+      "paddingX": "10px",
+      "borderRadius": "small",
+      "borderWidth": "normal",
+      "fontSize": "base"
+    },
+    "panel": {
+      "padding": "md",
+      "borderRadius": "small",
+      "shadow": "large",
+      "backdropBlur": "0px"
+    },
+    "card": {
+      "padding": "lg",
+      "borderRadius": "medium",
+      "shadow": "xlarge",
+      "borderWidth": "normal"
+    },
+    "track": {
+      "height": "32px",
+      "borderRadius": "small",
+      "shadow": "large",
+      "separatorWidth": "2px"
+    },
+    "clip": {
+      "padding": "sm",
+      "borderRadius": "small",
+      "borderWidth": "normal",
+      "shadow": "xlarge"
+    }
+  },
+  "layout": {
+    "sidebarWidth": {
+      "browser": "240px",
+      "inspector": "280px"
+    },
+    "detailHeight": "200px",
+    "transportHeight": "48px",
+    "minPanelWidth": "180px",
+    "maxPanelWidth": "400px"
+  },
+  "presets": {
+    "visualStyle": "gradient",
+    "densityPreset": "standard",
+    "animationLevel": "rich"
+  },
+  "colorScheme": "dark"
+}

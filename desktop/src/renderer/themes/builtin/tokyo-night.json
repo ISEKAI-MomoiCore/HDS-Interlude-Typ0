@@ -1,0 +1,211 @@
+{
+  "name": "Tokyo Night",
+  "version": "2.0.0",
+  "colors": {
+    "accent": {
+      "tertiary": "#7dcfff",
+      "secondary": "#bb9af7",
+      "primary": "#7aa2f7"
+    },
+    "tracks": {
+      "media": [
+        "#e0af68",
+        "#e6bc7e"
+      ],
+      "state": [
+        "#9ece6a",
+        "#aed67f"
+      ],
+      "script": [
+        "#7aa2f7",
+        "#89b0f8"
+      ],
+      "alter": [
+        "#f7768e",
+        "#f98aa2"
+      ],
+      "send": [
+        "#bb9af7",
+        "#c8a8f8"
+      ],
+      "receive": [
+        "#7dcfff",
+        "#92d8ff"
+      ]
+    },
+    "status": {
+      "error": "#f7768e",
+      "warning": "#e0af68",
+      "success": "#9ece6a",
+      "info": "#7dcfff"
+    },
+    "background": {
+      "elevated": "#292e42",
+      "highlight": "#3d4766",
+      "canvas": "#1a1b26",
+      "surface": "#24283b",
+      "panel": "#343b58"
+    },
+    "text": {
+      "tertiary": "#787c99",
+      "muted": "#565f89",
+      "secondary": "#a9b1d6",
+      "primary": "#c0caf5"
+    }
+  },
+  "geometry": {
+    "borderWidth": {
+      "thick": "2px",
+      "thin": "1px",
+      "normal": "1px"
+    },
+    "outlineStyle": "solid",
+    "borderRadius": {
+      "none": "0px",
+      "minimal": "2px",
+      "medium": "8px",
+      "full": "999px",
+      "small": "4px",
+      "xlarge": "16px",
+      "large": "12px"
+    },
+    "style": "rounded"
+  },
+  "animation": {
+    "easing": {
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)"
+    },
+    "speed": "normal",
+    "defaultDuration": "normal",
+    "defaultEasing": "easeOut",
+    "enabled": true,
+    "duration": {
+      "fast": "150ms",
+      "instant": "0ms",
+      "slower": "400ms",
+      "slow": "300ms",
+      "normal": "200ms"
+    }
+  },
+  "author": "Tokyo Night Team",
+  "effects": {
+    "gradientAngle": "135deg",
+    "glowIntensity": 0.4,
+    "shadowStyle": "large",
+    "shadows": {
+      "none": "none",
+      "minimal": "0 1px 2px rgba(0,0,0,0.2)",
+      "medium": "0 4px 8px rgba(0,0,0,0.35)",
+      "small": "0 2px 4px rgba(0,0,0,0.3)",
+      "xlarge": "0 16px 32px rgba(0,0,0,0.5)",
+      "large": "0 8px 16px rgba(0,0,0,0.4)"
+    },
+    "opacity": {
+      "muted": 0.7,
+      "disabled": 0.5,
+      "normal": 1.0
+    },
+    "backdropBlur": "0px",
+    "gradientsEnabled": true,
+    "glowColors": {
+      "subtle": "0 0 12px rgba(122,162,247,0.25)",
+      "accent": "0 0 24px rgba(122,162,247,0.45)"
+    },
+    "glowEnabled": true
+  },
+  "description": "东京之夜，现代日式",
+  "typography": {
+    "fontWeight": {
+      "medium": 500,
+      "bold": 700,
+      "semibold": 600,
+      "normal": 400
+    },
+    "letterSpacing": {
+      "wide": "0.02em",
+      "tight": "-0.01em",
+      "normal": "0"
+    },
+    "fontFamily": {
+      "display": "Inter, sans-serif",
+      "ui": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "fontSize": {
+      "xs": "11px",
+      "md": "14px",
+      "base": "13px",
+      "xl": "18px",
+      "lg": "16px",
+      "sm": "12px"
+    }
+  },
+  "id": "tokyo-night",
+  "components": {
+    "track": {
+      "height": "32px",
+      "shadow": "medium",
+      "borderRadius": "small"
+    },
+    "panel": {
+      "borderRadius": "medium",
+      "shadow": "medium",
+      "padding": "md"
+    },
+    "button": {
+      "borderRadius": "medium",
+      "hoverTransform": "translateY(-1px)",
+      "paddingX": {
+        "lg": "16px",
+        "md": "12px",
+        "sm": "8px"
+      },
+      "shadow": "large",
+      "fontWeight": "medium",
+      "height": {
+        "lg": "32px",
+        "md": "28px",
+        "sm": "24px"
+      }
+    },
+    "clip": {
+      "borderWidth": "thin",
+      "shadow": "large",
+      "borderRadius": "medium",
+      "padding": "sm"
+    },
+    "input": {
+      "height": "28px",
+      "borderWidth": "thin",
+      "paddingX": "10px",
+      "borderRadius": "medium",
+      "fontSize": "base"
+    }
+  },
+  "category": "color",
+  "presets": {
+    "animationLevel": "normal",
+    "densityPreset": "standard",
+    "visualStyle": "gradient"
+  },
+  "spacing": {
+    "base": 8,
+    "scale": 1.0,
+    "density": "standard",
+    "lineHeight": {
+      "relaxed": 1.75,
+      "tight": 1.25,
+      "normal": 1.5
+    },
+    "values": {
+      "xs": "4px",
+      "3xl": "40px",
+      "md": "12px",
+      "2xl": "32px",
+      "xl": "24px",
+      "lg": "16px",
+      "sm": "8px"
+    }
+  },
+  "colorScheme": "dark"
+}

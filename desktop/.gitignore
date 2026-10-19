@@ -1,0 +1,13 @@
+node_modules/
+dist/
+instance/data/
+instance/package.json
+*.tsbuildinfo
+
+# 运行时数据与密钥（开发模式 dataRoot=appRoot 时产生）
+logs/
+onebot-token
+theme-packs/
+usage/
+plugins-runtime/
+.typ-0-runtime-tests.cjs

@@ -1,0 +1,227 @@
+{
+  "category": "color",
+  "colors": {
+    "tracks": {
+      "alter": [
+        "#06b6d4",
+        "#22d3ee"
+      ],
+      "media": [
+        "#6366f1",
+        "#818cf8"
+      ],
+      "script": [
+        "#00d4ff",
+        "#0ea5e9"
+      ],
+      "state": [
+        "#14b8a6",
+        "#2dd4bf"
+      ],
+      "receive": [
+        "#3b82f6",
+        "#60a5fa"
+      ],
+      "send": [
+        "#8b5cf6",
+        "#a78bfa"
+      ]
+    },
+    "text": {
+      "secondary": "#b8d4f0",
+      "primary": "#e8f2ff",
+      "muted": "#4a6177",
+      "tertiary": "#7b9cb8"
+    },
+    "accent": {
+      "secondary": "#0ea5e9",
+      "primary": "#00d4ff",
+      "tertiary": "#3b82f6"
+    },
+    "background": {
+      "elevated": "#1e2837",
+      "panel": "#243447",
+      "surface": "#161d26",
+      "canvas": "#0f1419",
+      "highlight": "#2d4158"
+    },
+    "status": {
+      "success": "#06b6d4",
+      "warning": "#14b8a6",
+      "error": "#f43f5e",
+      "info": "#60a5fa"
+    }
+  },
+  "effects": {
+    "backdropBlur": "0px",
+    "glowEnabled": true,
+    "shadowStyle": "large",
+    "glowIntensity": 0.5,
+    "shadows": {
+      "none": "none",
+      "large": "0 8px 16px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3)",
+      "minimal": "0 1px 2px rgba(0,0,0,0.2)",
+      "small": "0 2px 4px rgba(0,0,0,0.3)",
+      "xlarge": "0 16px 32px rgba(0,0,0,0.5), 0 8px 16px rgba(0,0,0,0.35)",
+      "medium": "0 4px 8px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.25)"
+    },
+    "gradientStops": 2,
+    "opacity": {
+      "normal": 1.0,
+      "muted": 0.7,
+      "disabled": 0.5
+    },
+    "gradientsEnabled": true,
+    "glowColors": {
+      "subtle": "0 0 12px rgba(0,212,255,0.3), 0 0 24px rgba(0,212,255,0.15)",
+      "accent": "0 0 24px rgba(0,212,255,0.5), 0 0 48px rgba(0,212,255,0.25)"
+    },
+    "gradientAngle": "135deg"
+  },
+  "geometry": {
+    "outlineStyle": "solid",
+    "borderRadius": {
+      "none": "0px",
+      "large": "12px",
+      "minimal": "2px",
+      "small": "4px",
+      "full": "999px",
+      "xlarge": "16px",
+      "medium": "8px"
+    },
+    "style": "rounded",
+    "borderWidth": {
+      "normal": "1px",
+      "thin": "1px",
+      "thick": "2px"
+    }
+  },
+  "preview": "./previews/cyber-blue.png",
+  "typography": {
+    "letterSpacing": {
+      "normal": "0",
+      "wide": "0.02em",
+      "tight": "-0.01em"
+    },
+    "fontSize": {
+      "sm": "12px",
+      "base": "13px",
+      "xs": "11px",
+      "md": "14px",
+      "xl": "18px",
+      "lg": "16px"
+    },
+    "fontFamily": {
+      "mono": "JetBrains Mono, Consolas, 'Courier New', monospace",
+      "display": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "ui": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    },
+    "fontWeight": {
+      "normal": 400,
+      "semibold": 600,
+      "bold": 700,
+      "medium": 500
+    }
+  },
+  "name": "Cyber Blue",
+  "id": "cyber-blue",
+  "animation": {
+    "defaultDuration": "normal",
+    "enabled": true,
+    "defaultEasing": "easeOut",
+    "easing": {
+      "easeInOut": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "easeIn": "cubic-bezier(0.4, 0, 1, 1)",
+      "ease": "ease",
+      "linear": "linear",
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)",
+      "bounce": "cubic-bezier(0.68, -0.55, 0.265, 1.55)"
+    },
+    "speed": "normal",
+    "duration": {
+      "normal": "200ms",
+      "slower": "400ms",
+      "instant": "0ms",
+      "fast": "150ms",
+      "slow": "300ms"
+    }
+  },
+  "components": {
+    "card": {
+      "padding": "lg",
+      "shadow": "large",
+      "borderRadius": "large",
+      "borderWidth": "thin"
+    },
+    "panel": {
+      "padding": "md",
+      "shadow": "medium",
+      "borderRadius": "medium",
+      "backdropBlur": "0px"
+    },
+    "button": {
+      "paddingX": {
+        "lg": "16px",
+        "sm": "8px",
+        "md": "12px"
+      },
+      "hoverTransform": "translateY(-1px)",
+      "shadow": "large",
+      "height": {
+        "lg": "32px",
+        "sm": "24px",
+        "md": "28px"
+      },
+      "borderRadius": "medium",
+      "textTransform": "none",
+      "fontWeight": "medium"
+    },
+    "clip": {
+      "shadow": "large",
+      "padding": "sm",
+      "borderRadius": "medium",
+      "borderWidth": "thin"
+    },
+    "input": {
+      "paddingX": "10px",
+      "borderWidth": "thin",
+      "fontSize": "base",
+      "borderRadius": "medium",
+      "height": "28px"
+    },
+    "track": {
+      "shadow": "medium",
+      "separatorWidth": "1px",
+      "borderRadius": "small",
+      "height": "32px"
+    }
+  },
+  "description": "科技感霓虹蓝，适合夜间使用",
+  "presets": {
+    "visualStyle": "gradient",
+    "animationLevel": "normal",
+    "densityPreset": "standard"
+  },
+  "version": "2.0.0",
+  "spacing": {
+    "scale": 1.0,
+    "lineHeight": {
+      "normal": 1.5,
+      "relaxed": 1.75,
+      "tight": 1.25
+    },
+    "base": 8,
+    "density": "standard",
+    "values": {
+      "sm": "8px",
+      "xs": "4px",
+      "md": "12px",
+      "xl": "24px",
+      "3xl": "40px",
+      "2xl": "32px",
+      "lg": "16px"
+    }
+  },
+  "author": "HDSI Team",
+  "colorScheme": "dark"
+}

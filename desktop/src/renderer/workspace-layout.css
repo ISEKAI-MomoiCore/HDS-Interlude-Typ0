@@ -1,0 +1,1181 @@
+/* Final workstation layout contract: one lane width and one clipping viewport. */
+:root { --track-header-width:132px; }
+.studio-shell { min-width:0; }
+.workspace-panel,.surface { position:relative; overflow:hidden; }
+/* 页签可见性（m3 清理回归修复）：setSurface 只切换 active 类，四个
+   section.surface 依赖本规则退出文档流；缺失时全部纵向堆叠并被裁剪。 */
+.surface:not(.active) { display:none; }
+#koishi-surface.active { display:flex; flex-direction:column; height:100%; min-height:0; }
+#koishi-surface > .workspace-header { flex:none; }
+#koishi-surface .koishi-overlay { inset:0; height:fit-content; max-height:calc(100% - 32px); margin:16px auto; overflow:auto; }
+.arrangement { overflow-x:hidden; overflow-y:auto; background:var(--hdsi-color-surface); position:relative; }
+.arrangement-track { grid-template-columns:var(--track-header-width) minmax(0,1fr); }
+.arrangement-track > header { display:grid; grid-template-columns:12px minmax(0,1fr); align-content:start; align-items:center; gap:5px; padding:8px; }
+.arrangement-track > header small { grid-column:2; line-height:1.4; }
+.arrangement-track > header b { overflow-wrap:anywhere; }
+.track-lane { min-width:0; overflow:hidden; background-repeat:repeat-x; }
+/* Timeline geometry is written as lane-relative left/top coordinates. */
+.track-lane > .clip { position:absolute; top:8px; min-height:0; height:22px; padding:1px 6px; overflow:hidden; font-size:10px; line-height:18px; text-align:left; white-space:nowrap; text-overflow:ellipsis; }
+.arrangement-ruler { grid-template-columns:var(--track-header-width) minmax(0,1fr); overflow:hidden; height:32px; align-items:center; }
+#arrangement-ruler > div:not(.range-meta) { position:relative; height:28px; overflow:hidden; min-width:0; }
+#arrangement-ruler > div span { position:absolute; top:8px; transform:none; white-space:nowrap; padding-left:4px; border-left:1px solid var(--hdsi-color-text-muted); }
+#arrange-range-end,.arrangement-ruler .range-meta { display:none; }
+.script-track .clip { display:flex; flex-direction:column; gap:4px; height:120px; padding:7px; }
+.script-track .clip b { flex:1; min-height:0; max-height:none; margin:0; line-height:1.5; font-size:12px; -webkit-line-clamp:5; overflow:hidden; }
+.script-track .clip small { position:static; flex:none; margin:0; font-size:10px; }
+.clip[hidden] { display:none !important; }
+.clip.compact-clip { padding:0; color:transparent; }
+.clip.compact-clip > * { visibility:hidden; }
+.status-ruler .ruler { background:none; border:0; }
+.status-ruler .ruler > * { display:none; }
+.clip.selected { outline:2px solid var(--accent); outline-offset:-2px; }
+.now-playhead { z-index:4; pointer-events:none; }
+.timeline-hidden #arrangement-ruler,.timeline-hidden #timeline-scroller-container,.timeline-hidden .time-knob-wrap,.timeline-hidden .now-playhead { display:none !important; }
+.studio-overview #arrangement-ruler { opacity:0; pointer-events:none; }
+.studio-overview #timeline-scroller-container,
+.studio-overview .time-knob-wrap,
+.studio-overview .now-playhead { display:block !important; opacity:0; }
+.scroller-track,.time-knob-wrap { touch-action:none; }
+.workspace-header > div:first-child { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.workspace-actions { flex:none; }
+.detail-tabs { overflow-x:auto; }
+.detail-tabs button { flex:none; }
+.detail-tabs span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.inspect-content,.script-detail p { overflow-wrap:anywhere; }
+.mixer-rack { min-height:100%; }
+.mixer-sections { flex-wrap:wrap; }
+.mixer-channel-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(165px,1fr)); align-content:start; gap:10px; padding:12px; }
+.mixer-channel { flex:none; width:auto; min-width:0; min-height:155px; padding:12px; gap:8px; }
+.mixer-channel label { font-size:12px; line-height:1.5; order:-1; }
+.mixer-channel .mixer-description { color:var(--dim); font-size:11px; line-height:1.5; margin:0; }
+.mixer-fader { writing-mode:horizontal-tb; direction:ltr; width:100%; height:24px; }
+.mixer-fader::-webkit-slider-runnable-track { width:100%; height:4px; }
+.mixer-fader::-webkit-slider-thumb { width:12px; height:16px; margin: -6px 0 0; }
+.mixer-select { width:100%; min-width:0; height:30px; font-size:12px; }
+.mixer-number { width:100%; min-width:0; height:30px; }
+.mixer-foot { white-space:normal; line-height:1.6; }
+.mixer-toggle:focus-visible { outline:2px solid var(--accent); }
+.config-dialog { max-height:calc(100vh - 24px); overflow:auto; }
+@media(max-width:1100px) { .arrangement-track { grid-template-columns:var(--track-header-width) minmax(0,1fr); } }
+
+/* V7：Overview 是 HUD + 三条窄轨预览，Timeline 继续使用同一份
+   arrangement DOM。两个状态直接切换，不对完整画布做整体 scale 或过渡。 */
+:root {
+  --studio-preview-height: 250px;
+  --studio-rail-row-height: 34px;
+  --studio-transition-duration: 460ms;
+  --studio-transition-ease: cubic-bezier(.16,1,.3,1);
+}
+.studio-mode-viewport {
+  position: relative;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  background: var(--hdsi-color-surface);
+}
+.studio-mode-viewport > .arrangement {
+  min-height: 0;
+  height: 100%;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  flex: 0 0 0;
+  /* V7: HUD ⇄ Timeline 直接切换，不做空间形变或淡入。 */
+  transition: none;
+}
+.studio-mode-viewport[data-studio-view="timeline"] > .arrangement {
+  max-height: 100%;
+  opacity: 1;
+  flex: 1 1 auto;
+  overflow: auto;
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement {
+  display:block;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  max-height:none;
+  flex:none;
+  visibility:hidden;
+  opacity:0;
+  overflow:auto;
+  pointer-events:none;
+}
+.studio-mode-viewport[data-studio-view="overview"] > .story-hud {
+  height:100%;
+  max-height:none;
+  overflow:auto;
+}
+.story-hud {
+  min-height: 0;
+  max-height: var(--studio-preview-height);
+  overflow: auto;
+  padding: 12px 14px 9px;
+  background: var(--hdsi-color-surface);
+  opacity: 1;
+  /* V7: 与轨道状态同步更新，避免切换时出现残留的高度/透明度动画。 */
+  transition: none;
+}
+.studio-mode-viewport[data-studio-view="timeline"] > .story-hud {
+  height:0;
+  flex:0 0 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.studio-hud-signals { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:10px; }
+.studio-hud-signal { min-width:0; padding:8px 10px; border:1px solid var(--hdsi-color-border); background:var(--hdsi-color-surface-raised); }
+.studio-hud-signal small { display:block; color:var(--hdsi-color-text-muted); font:9px/1.2 var(--hdsi-font-mono); letter-spacing:.12em; text-transform:uppercase; }
+.studio-hud-signal strong { display:block; margin-top:4px; color:var(--hdsi-color-text-primary); font-size:12px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.studio-hud-signal span { display:block; margin-top:3px; color:var(--hdsi-color-text-secondary); font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.studio-hud-signal.indigo { border-top:2px solid var(--kiy-indigo, var(--hdsi-color-state-info)); }
+.studio-hud-signal.moss { border-top:2px solid var(--kiy-moss, var(--hdsi-color-state-success)); }
+.studio-hud-signal.verm { border-top:2px solid var(--kiy-verm, var(--hdsi-color-state-danger)); }
+.studio-hud-context { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:8px; }
+.studio-hud-card { min-width:0; border-top:1px solid var(--hdsi-color-border); padding-top:6px; }
+.studio-hud-card h3 { margin:0 0 4px; color:var(--hdsi-color-text-muted); font:9px/1.2 var(--hdsi-font-mono); letter-spacing:.12em; text-transform:uppercase; }
+.studio-hud-list { display:grid; gap:2px; }
+.studio-hud-item { display:flex; align-items:baseline; gap:8px; width:100%; min-width:0; padding:3px 5px; border:0; border-left:2px solid var(--hdsi-color-border-strong); background:transparent; color:var(--hdsi-color-text-secondary); text-align:left; cursor:pointer; font-size:10px; }
+.studio-hud-item:hover { background:var(--hdsi-color-surface-raised); color:var(--hdsi-color-text-primary); }
+.studio-hud-item time { flex:none; color:var(--hdsi-color-text-muted); font:9px/1 var(--hdsi-font-mono); }
+.studio-hud-item span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.studio-hud-empty { color:var(--hdsi-color-text-muted); font-size:10px; padding:3px 0; }
+.studio-transition-layer { position:absolute; inset:0; pointer-events:none; z-index:12; opacity:0; }
+@media (prefers-reduced-motion: reduce) {
+  .studio-mode-viewport > .arrangement, .story-hud { transition:none; }
+}
+@media (max-width:760px) {
+  .studio-hud-signals { grid-template-columns:1fr; }
+  .studio-hud-context { grid-template-columns:1fr; }
+  :root { --studio-preview-height: 246px; }
+}
+
+/* V4 visual refinement：清澄纸面主题的 Overview 密度与 typ0 V3 概念稿对齐。 */
+html[data-hdsi-theme="default"] .studio-mode-viewport[data-studio-view="overview"] > .story-hud {
+  padding:0 16px 18px;
+  background:var(--kiy-paper, #f3f1eb);
+  color:var(--kiy-ink, #202824);
+}
+html[data-hdsi-theme="default"] .studio-hud-signal {
+  min-height:70px;
+  padding:8px 12px 6px;
+  border:1px solid var(--kiy-line-strong, #b8b8ac);
+  border-top:0;
+  border-radius:0;
+  background:var(--kiy-panel, #f8f7f3);
+  box-shadow:none;
+}
+html[data-hdsi-theme="default"] .studio-hud-signal::after { content:""; display:block; height:3px; margin:6px -12px -6px; background:var(--kiy-line-strong, #b8b8ac); }
+html[data-hdsi-theme="default"] .studio-hud-signal.indigo::after { background:var(--kiy-indigo, #596f80); }
+html[data-hdsi-theme="default"] .studio-hud-signal.moss::after { background:var(--kiy-moss, #718065); }
+html[data-hdsi-theme="default"] .studio-hud-signal.verm::after { background:var(--kiy-verm, #bd5d4e); }
+html[data-hdsi-theme="default"] .studio-hud-signal small { color:var(--kiy-muted, #778078); font-size:10px; letter-spacing:.14em; }
+html[data-hdsi-theme="default"] .studio-hud-signal small em { float:right; color:var(--kiy-muted, #778078); font:10px/1 var(--hdsi-font-mono); font-style:normal; letter-spacing:0; }
+html[data-hdsi-theme="default"] .studio-hud-signal strong { margin-top:6px; color:var(--kiy-ink, #202824); font-size:15px; letter-spacing:.02em; }
+html[data-hdsi-theme="default"] .studio-hud-signal span { margin-top:5px; color:var(--kiy-muted, #778078); font-size:10px; }
+html[data-hdsi-theme="default"] .studio-hud-context { grid-template-columns:minmax(0,1.24fr) minmax(300px,.76fr); gap:16px; }
+html[data-hdsi-theme="default"] .studio-hud-card { border-top:1px solid var(--kiy-line-strong, #b8b8ac); padding-top:8px; }
+html[data-hdsi-theme="default"] .studio-hud-card h3 { display:flex; justify-content:space-between; margin:0 0 7px; color:var(--kiy-ink, #202824); font:11px/1.2 var(--hdsi-font-ui); letter-spacing:.04em; text-transform:none; }
+html[data-hdsi-theme="default"] .studio-hud-card h3::after { content:"sources / routing / delivery"; color:var(--kiy-indigo, #596f80); font:9px/1 var(--hdsi-font-mono); letter-spacing:.03em; }
+html[data-hdsi-theme="default"] .studio-hud-context .studio-hud-card:nth-child(2) h3::after { content:"scene / 04"; }
+html[data-hdsi-theme="default"] .studio-hud-card h3 span { color:var(--kiy-muted, #778078); font:9px/1 var(--hdsi-font-mono); letter-spacing:.03em; }
+html[data-hdsi-theme="default"] .studio-hud-item { min-height:39px; padding:5px 8px 5px 10px; border:0; border-bottom:1px solid var(--kiy-line, #d5d2c8); border-left:1px solid transparent; background:transparent; color:var(--kiy-ink, #202824); }
+html[data-hdsi-theme="default"] .studio-hud-item:hover { border-left-color:var(--kiy-verm, #bd5d4e); background:rgba(255,255,255,.4); }
+html[data-hdsi-theme="default"] .studio-hud-item time { width:42px; color:var(--kiy-muted, #778078); font-size:10px; }
+html[data-hdsi-theme="default"] .hud-item-dot { width:8px; height:8px; flex:none; margin-right:2px; border-radius:50%; background:var(--kiy-line-strong, #b8b8ac); }
+html[data-hdsi-theme="default"] .hud-item-dot.receive { background:var(--kiy-indigo, #596f80); }
+html[data-hdsi-theme="default"] .hud-item-dot.send { background:var(--kiy-moss, #718065); }
+html[data-hdsi-theme="default"] .hud-item-dot.narrative { background:var(--kiy-verm, #bd5d4e); }
+html[data-hdsi-theme="default"] .hud-item-body { display:grid; min-width:0; gap:2px; text-align:left; }
+html[data-hdsi-theme="default"] .hud-item-body b { color:var(--kiy-ink, #202824); font-size:12px; font-weight:500; }
+html[data-hdsi-theme="default"] .hud-item-body strong { overflow:hidden; color:var(--kiy-ink, #202824); font-size:11px; font-weight:400; text-overflow:ellipsis; white-space:nowrap; }
+html[data-hdsi-theme="default"] .hud-item-body small { color:var(--kiy-muted, #778078); font:9px/1.2 var(--hdsi-font-mono); }
+html[data-hdsi-theme="default"] .hud-scene-copy { display:grid; gap:7px; min-width:0; text-align:left; }
+html[data-hdsi-theme="default"] .hud-scene-copy small { color:var(--kiy-verm, #bd5d4e); font:9px/1 var(--hdsi-font-mono); letter-spacing:.1em; }
+html[data-hdsi-theme="default"] .hud-scene-copy strong { max-width:300px; color:var(--kiy-ink, #202824); font-size:17px; font-weight:500; line-height:1.35; white-space:normal; }
+html[data-hdsi-theme="default"] .hud-scene-copy em { max-width:360px; color:var(--kiy-muted, #778078); font-size:10px; font-style:normal; line-height:1.6; }
+
+html[data-hdsi-theme="default"] .studio-hud-lower { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-top:10px; }
+html[data-hdsi-theme="default"] .studio-hud-lower .studio-hud-card h3::after { content:none; }
+html[data-hdsi-theme="default"] .hud-fact { min-height:43px; }
+html[data-hdsi-theme="default"] .hud-index,
+html[data-hdsi-theme="default"] .hud-activity-icon { display:grid; place-items:center; width:24px; height:24px; flex:none; border:1px solid var(--kiy-line-strong, #b8b8ac); color:var(--kiy-indigo, #596f80); font:10px/1 var(--hdsi-font-mono); font-style:normal; }
+html[data-hdsi-theme="default"] .hud-activity-icon { color:var(--kiy-moss, #718065); }
+html[data-hdsi-theme="default"] .hud-activity { min-height:43px; cursor:default; }
+html[data-hdsi-theme="default"] .hud-activity:hover { border-left-color:transparent; background:transparent; }
+@media (max-width:900px) {
+  html[data-hdsi-theme="default"] .studio-hud-context,
+  html[data-hdsi-theme="default"] .studio-hud-lower { grid-template-columns:1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   清澄宿主壳复刻：typ0-v3-interface.html
+
+   只作用于出厂 default 主题。轨道本身仍由上方的时间线契约控制；这里
+   调整的是宿主栏、Browser、工作区标题、Inspector、Detail Dock，以及
+   连接/诊断/Console 等多功能表面周边的纸面层级。
+   ═══════════════════════════════════════════════════════════════════════ */
+html[data-hdsi-theme="default"] {
+  --kiy-paper: #f3f1eb;
+  --kiy-paper-2: #ebe8df;
+  --kiy-panel: #f8f7f3;
+  --kiy-ink: #202824;
+  --kiy-muted: #778078;
+  --kiy-line: #d5d2c8;
+  --kiy-line-strong: #b8b8ac;
+  --kiy-indigo: #596f80;
+  --kiy-moss: #718065;
+  --kiy-verm: #bd5d4e;
+}
+
+html[data-hdsi-theme="default"] body {
+  background: #d8d6ce;
+  color: var(--kiy-ink);
+}
+
+/* 参考稿把工作台作为一张独立纸面放在灰色背景上。Electron 窗口本身
+   没有 HTML 参考稿的 .app 包裹层，因此用三段边框还原同一层次。 */
+@media (min-width: 1121px) {
+  html[data-hdsi-theme="default"] body { padding: 18px 18px 0; }
+  html[data-hdsi-theme="default"] .transport-bar,
+  html[data-hdsi-theme="default"] .status-ruler,
+  html[data-hdsi-theme="default"] .studio-shell {
+    width: min(1480px, calc(100vw - 36px));
+    margin-left: auto;
+    margin-right: auto;
+  }
+  html[data-hdsi-theme="default"] .transport-bar {
+    border-top: 1px solid #141916;
+    border-left: 1px solid #141916;
+    border-right: 1px solid #141916;
+    border-radius: 3px 3px 0 0;
+  }
+  html[data-hdsi-theme="default"] .status-ruler { border-left: 1px solid var(--kiy-line-strong); border-right: 1px solid var(--kiy-line-strong); }
+  html[data-hdsi-theme="default"] .studio-shell {
+    height: calc(100vh - 121px);
+    border-left: 1px solid var(--kiy-line-strong);
+    border-right: 1px solid var(--kiy-line-strong);
+    border-bottom: 1px solid var(--kiy-line-strong);
+    border-radius: 0 0 2px 2px;
+  }
+}
+
+/* 顶栏：按参考稿采用 72px 墨色标题栏，保留宿主现有所有动作。 */
+html[data-hdsi-theme="default"] .transport-bar {
+  height: 72px;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  background: var(--kiy-ink);
+  border-bottom: 1px solid #141916;
+  color: var(--kiy-paper);
+}
+html[data-hdsi-theme="default"] .brand-mark {
+  position: relative;
+  flex: 0 0 188px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+  letter-spacing: .12em;
+  color: var(--kiy-paper);
+}
+html[data-hdsi-theme="default"] .brand-mark::before {
+  content: "t0";
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 1px solid var(--kiy-verm);
+  color: var(--kiy-verm);
+  font: 10px/1 var(--hdsi-font-mono);
+  letter-spacing: -.08em;
+}
+html[data-hdsi-theme="default"] .brand-mark .brand-text { color: var(--kiy-paper); font-weight: 400; }
+html[data-hdsi-theme="default"] .brand-mark .brand-text em { color: var(--kiy-verm); }
+html[data-hdsi-theme="default"] .brand-mark .brand-sub {
+  position: absolute;
+  left: 42px;
+  top: 31px;
+  padding-left: 0;
+  border-left: 0;
+  color: #9da79f;
+  font: 9px/1 var(--hdsi-font-mono);
+  letter-spacing: .14em;
+}
+html[data-hdsi-theme="default"] .brand-mark::after {
+  content: "STORY OPERATING SYSTEM";
+  position: absolute;
+  left: 42px;
+  top: 43px;
+  color: #6f7971;
+  font: 8px/1 var(--hdsi-font-mono);
+  letter-spacing: .13em;
+}
+html[data-hdsi-theme="default"] .surface-tabs {
+  flex: 0 0 auto;
+  height: 42px;
+  border: 1px solid #4d5950;
+  background: transparent;
+}
+html[data-hdsi-theme="default"] .surface-tabs button {
+  min-width: 70px;
+  height: 40px;
+  padding: 5px 11px;
+  background: transparent;
+  color: #a6ada5;
+  border-right-color: #4d5950;
+  border-radius: 0;
+  font-size: 11px;
+}
+html[data-hdsi-theme="default"] .surface-tabs button small { color: #6f7971; }
+html[data-hdsi-theme="default"] .surface-tabs button:hover { color: var(--kiy-paper); background: rgba(255,255,255,.05); }
+html[data-hdsi-theme="default"] .surface-tabs button.active {
+  color: var(--kiy-paper);
+  background: rgba(255,255,255,.07);
+  box-shadow: inset 0 -2px var(--kiy-verm);
+}
+html[data-hdsi-theme="default"] .surface-tabs button.active small { color: #c6cec5; }
+html[data-hdsi-theme="default"] .transport-story {
+  flex: 1 1 220px;
+  min-width: 150px;
+  margin-left: 2px;
+  gap: 8px;
+  color: #aeb9a8;
+  font: 9px/1 var(--hdsi-font-mono);
+  letter-spacing: .13em;
+}
+html[data-hdsi-theme="default"] .transport-story select {
+  width: min(290px, 100%);
+  height: 34px;
+  padding: 0 9px;
+  background: transparent;
+  color: var(--kiy-paper);
+  border: 1px solid #4d5950;
+  border-radius: 0;
+  font: 11px/1 var(--hdsi-font-ui);
+}
+html[data-hdsi-theme="default"] .transport-state { gap: 3px; }
+html[data-hdsi-theme="default"] .transport-state button,
+html[data-hdsi-theme="default"] .resource-state {
+  width: auto;
+  min-width: 28px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #4d5950;
+  border-radius: 0;
+  background: transparent;
+  color: #cbd2ca;
+}
+html[data-hdsi-theme="default"] .transport-state button:hover,
+html[data-hdsi-theme="default"] .resource-state:hover { background: rgba(255,255,255,.06); border-color: #98a69a; }
+html[data-hdsi-theme="default"] .run-state-text { max-width: 160px; color: #aeb9a8; font: 9px/1.2 var(--hdsi-font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-hdsi-theme="default"] .clock { margin-left: 0; color: #d27a6c; font: 10px/1 var(--hdsi-font-mono); }
+html[data-hdsi-theme="default"] #theme-menu-btn,
+html[data-hdsi-theme="default"] .layout-menu summary,
+html[data-hdsi-theme="default"] #more-menu summary {
+  color: #aeb9a8;
+}
+html[data-hdsi-theme="default"] #new-story {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--kiy-verm);
+  border-radius: 2px;
+  background: var(--kiy-verm);
+  color: #fff8f4;
+}
+
+/* 状态摘要：成为参考稿中的第二条细信息带。 */
+html[data-hdsi-theme="default"] .status-ruler {
+  height: 31px;
+  min-height: 31px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  background: var(--kiy-paper-2);
+  border-bottom: 1px solid var(--kiy-line-strong);
+  color: var(--kiy-muted);
+  font: 9px/1 var(--hdsi-font-mono);
+}
+html[data-hdsi-theme="default"] .status-ruler .ruler { flex: 1; min-width: 40px; background: none; border-bottom: 1px solid var(--kiy-line-strong); }
+html[data-hdsi-theme="default"] .status-ruler .ruler > * { display: none; }
+html[data-hdsi-theme="default"] .status-ruler .status-cell.ok { color: var(--kiy-moss); }
+html[data-hdsi-theme="default"] .status-ruler .status-cell.warn { color: #a27d3f; }
+html[data-hdsi-theme="default"] .status-ruler .status-cell.err { color: var(--kiy-verm); }
+
+/* 三栏宿主骨架：参考稿的 220 / flexible / 306 比例。 */
+html[data-hdsi-theme="default"] .studio-shell {
+  height: calc(100vh - 103px);
+  grid-template-columns: 220px minmax(0, 1fr) 306px;
+  grid-template-rows: minmax(300px, 1fr) 114px;
+  background: var(--kiy-paper-2);
+}
+html[data-hdsi-theme="default"] .browser-panel,
+html[data-hdsi-theme="default"] .inspector-panel {
+  background: color-mix(in srgb, var(--kiy-paper-2) 84%, var(--kiy-paper));
+}
+html[data-hdsi-theme="default"] .browser-panel { border-right-color: var(--kiy-line-strong); }
+html[data-hdsi-theme="default"] .inspector-panel { border-left-color: var(--kiy-line-strong); padding: 0 14px 14px; }
+
+/* Browser：从压缩列表改为参考稿的分组导航。 */
+html[data-hdsi-theme="default"] .browser-panel .panel-header,
+html[data-hdsi-theme="default"] .inspector-panel .panel-header {
+  height: 42px;
+  padding: 0 12px;
+  background: transparent;
+  border-bottom: 1px solid var(--kiy-line);
+  color: var(--kiy-ink);
+}
+html[data-hdsi-theme="default"] .panel-header strong { font-size: 12px; font-weight: 500; letter-spacing: .06em; }
+html[data-hdsi-theme="default"] .panel-header .panel-sub { color: var(--kiy-muted); font: 9px/1 var(--hdsi-font-mono); letter-spacing: .08em; }
+html[data-hdsi-theme="default"] .panel-header > span { color: var(--kiy-muted); font: 10px/1 var(--hdsi-font-mono); }
+html[data-hdsi-theme="default"] .panel-header .panel-collapse { border-color: var(--kiy-line-strong); background: transparent; color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .browser-tools { padding: 10px 12px; border-bottom: 1px solid var(--kiy-line); }
+html[data-hdsi-theme="default"] .browser-tools input {
+  height: 30px; padding: 0 9px; background: var(--kiy-panel); color: var(--kiy-ink);
+  border: 1px solid var(--kiy-line); border-radius: 0; font-size: 11px;
+}
+html[data-hdsi-theme="default"] .story-list { max-height: 210px; background: var(--kiy-panel); border-bottom: 1px solid var(--kiy-line); }
+html[data-hdsi-theme="default"] .story-strip { min-height: 48px; padding: 6px 12px; gap: 8px; background: transparent; border-bottom: 1px solid var(--kiy-line); }
+html[data-hdsi-theme="default"] .story-strip:hover,
+html[data-hdsi-theme="default"] .story-strip.selected { background: var(--kiy-panel); }
+html[data-hdsi-theme="default"] .story-strip b { font-size: 12px; font-weight: 500; }
+html[data-hdsi-theme="default"] .story-strip small { color: var(--kiy-muted); font-size: 10px; }
+html[data-hdsi-theme="default"] .browser-section { margin: 0; padding: 14px 12px 0; border-top: 0; }
+html[data-hdsi-theme="default"] .browser-section.utility { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--kiy-line); }
+html[data-hdsi-theme="default"] .browser-section summary { color: var(--kiy-muted); font: 10px/1.4 var(--hdsi-font-mono); letter-spacing: .13em; }
+html[data-hdsi-theme="default"] .browser-section summary::before { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .browser-stack { gap: 2px; margin-top: 8px; }
+html[data-hdsi-theme="default"] .browser-item {
+  min-height: 31px; padding: 7px 10px; color: #5f6861; background: transparent;
+  border-left: 3px solid transparent; font-size: 11px;
+}
+html[data-hdsi-theme="default"] .browser-item:hover { color: var(--kiy-ink); background: var(--kiy-paper-2); }
+html[data-hdsi-theme="default"] .browser-item.active { color: var(--kiy-ink); background: var(--kiy-panel); border-left-color: var(--kiy-verm); padding-left: 7px; }
+html[data-hdsi-theme="default"] .track-menu-item { border-left-color: var(--kiy-line-strong); color: #5f6861; padding: 6px 7px; }
+html[data-hdsi-theme="default"] .track-menu-item[aria-pressed="true"] { border-left-color: var(--kiy-verm); color: var(--kiy-ink); background: var(--kiy-panel); }
+
+/* 中央多功能区标题：参考稿的纸面标题、信号工具组。轨道画布不改。 */
+html[data-hdsi-theme="default"] .workspace-panel { background: var(--kiy-paper); }
+html[data-hdsi-theme="default"] .workspace-header {
+  height: 48px; min-height: 48px; padding: 0 14px; background: var(--kiy-panel);
+  border-bottom: 1px solid var(--kiy-line-strong);
+}
+html[data-hdsi-theme="default"] #studio-surface .workspace-header > div:first-child::before {
+  content: "ARRANGEMENT  /  STORY WORKBENCH";
+  display: block;
+  margin-bottom: 2px;
+  color: var(--kiy-muted);
+  font: 8px/1 var(--hdsi-font-mono);
+  letter-spacing: .13em;
+}
+html[data-hdsi-theme="default"] #studio-surface .workspace-header > div:first-child { line-height: 1.1; }
+html[data-hdsi-theme="default"] .workspace-header strong { color: var(--kiy-ink); font-size: 13px; font-weight: 500; letter-spacing: .08em; }
+html[data-hdsi-theme="default"] .workspace-header span { color: var(--kiy-muted); font-size: 10px; }
+html[data-hdsi-theme="default"] .workspace-actions { gap: 5px; }
+html[data-hdsi-theme="default"] .studio-view-switch {
+  display:inline-flex; align-items:center; gap:0; padding:2px;
+  border:1px solid var(--kiy-line); background:var(--kiy-paper-2);
+}
+html[data-hdsi-theme="default"] .studio-view-switch button {
+  min-height:24px; padding:3px 8px; border:0; border-right:1px solid var(--kiy-line);
+  background:transparent; color:var(--kiy-muted); font:10px/1 var(--hdsi-font-mono); cursor:pointer;
+}
+html[data-hdsi-theme="default"] .studio-view-switch button:last-child { border-right:0; }
+html[data-hdsi-theme="default"] .studio-view-switch button:hover { color:var(--kiy-ink); background:var(--kiy-paper); }
+html[data-hdsi-theme="default"] .studio-view-switch button.active,
+html[data-hdsi-theme="default"] .studio-view-switch button[aria-pressed="true"] { color:var(--kiy-ink); background:var(--kiy-panel); box-shadow:inset 0 -2px var(--kiy-verm); }
+html[data-hdsi-theme="default"] .workspace-actions button,
+html[data-hdsi-theme="default"] .workspace-actions label { min-height: 28px; padding: 5px 9px; border: 1px solid var(--kiy-line); border-radius: 0; background: transparent; color: var(--kiy-muted); font-size: 10px; }
+html[data-hdsi-theme="default"] .workspace-actions button:hover,
+html[data-hdsi-theme="default"] .workspace-actions label:hover { color: var(--kiy-ink); border-color: var(--kiy-ink); background: var(--kiy-paper-2); }
+html[data-hdsi-theme="default"] .workspace-actions .primary { color: #fff8f4; border-color: var(--kiy-verm); background: var(--kiy-verm); }
+html[data-hdsi-theme="default"] .time-presets { border-color: var(--kiy-line); background: var(--kiy-paper); }
+html[data-hdsi-theme="default"] .time-presets button { min-height: 25px; background: transparent; color: var(--kiy-muted); border-right-color: var(--kiy-line); }
+html[data-hdsi-theme="default"] .time-presets button:hover,
+html[data-hdsi-theme="default"] .time-presets button.now-control { color: var(--kiy-ink); background: var(--kiy-paper-2); }
+html[data-hdsi-theme="default"] .time-presets .now-control { color: var(--kiy-verm); }
+html[data-hdsi-theme="default"] .time-knob-label { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .arrangement-ruler { background: var(--kiy-paper); border-bottom-color: var(--kiy-line); }
+
+/* Inspector：增加参考稿的细线分段和信息卡阅读层级。 */
+html[data-hdsi-theme="default"] .inspector-panel .panel-header { margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
+html[data-hdsi-theme="default"] .inspector-content { padding-top: 14px; color: var(--kiy-ink); }
+html[data-hdsi-theme="default"] .inspector-content h3,
+html[data-hdsi-theme="default"] .inspector-content h4 { color: var(--kiy-ink); font-weight: 500; }
+html[data-hdsi-theme="default"] .inspector-content .inspect-grid {
+  border-color: var(--kiy-line); background: var(--kiy-panel); border-radius: 0; box-shadow: none;
+}
+html[data-hdsi-theme="default"] .inspector-content .inspect-grid { display: grid; grid-template-columns: 1fr 1fr; }
+html[data-hdsi-theme="default"] .inspector-content .inspect-grid dt,
+html[data-hdsi-theme="default"] .inspector-content .inspect-grid dd { padding: 8px 9px; border-bottom: 1px solid var(--kiy-line); }
+html[data-hdsi-theme="default"] .inspector-content .inspect-grid dt { color: var(--kiy-muted); font-size: 10px; }
+html[data-hdsi-theme="default"] .inspector-content .inspect-grid dd { color: var(--kiy-ink); font-size: 11px; }
+html[data-hdsi-theme="default"] .inspector-content button { border-radius: 0; border-color: var(--kiy-line-strong); background: transparent; color: var(--kiy-ink); }
+html[data-hdsi-theme="default"] .inspector-content button:hover { background: var(--kiy-paper-2); border-color: var(--kiy-ink); }
+html[data-hdsi-theme="default"] .context-inspector-section { margin:0 -2px; padding:12px 0; border-bottom:1px solid var(--kiy-line, #d5d2c8); }
+html[data-hdsi-theme="default"] .context-inspector-section h4 { display:flex; justify-content:space-between; margin:0 0 9px; color:var(--kiy-muted, #778078); font:9px/1 var(--hdsi-font-mono); letter-spacing:.14em; }
+html[data-hdsi-theme="default"] .context-inspector-section h4 small { color:var(--kiy-indigo, #596f80); font:9px/1 var(--hdsi-font-mono); letter-spacing:0; }
+html[data-hdsi-theme="default"] .context-endpoint,
+html[data-hdsi-theme="default"] .context-participant { display:flex; align-items:center; gap:9px; min-width:0; padding:7px 0; }
+html[data-hdsi-theme="default"] .context-endpoint > i,
+html[data-hdsi-theme="default"] .context-participant > i { display:grid; place-items:center; width:25px; height:25px; flex:none; border:1px solid var(--kiy-line-strong, #b8b8ac); color:var(--kiy-indigo, #596f80); background:var(--kiy-indigo-soft, #dbe4e7); font:11px/1 var(--hdsi-font-mono); font-style:normal; }
+html[data-hdsi-theme="default"] .context-participant > i { border-radius:50%; background:var(--kiy-ink, #202824); color:var(--kiy-paper, #f3f1eb); }
+html[data-hdsi-theme="default"] .context-endpoint span,
+html[data-hdsi-theme="default"] .context-participant span { display:grid; min-width:0; gap:3px; }
+html[data-hdsi-theme="default"] .context-endpoint b,
+html[data-hdsi-theme="default"] .context-participant b { overflow:hidden; color:var(--kiy-ink, #202824); font-size:11px; font-weight:500; text-overflow:ellipsis; white-space:nowrap; }
+html[data-hdsi-theme="default"] .context-endpoint small,
+html[data-hdsi-theme="default"] .context-participant small { overflow:hidden; color:var(--kiy-muted, #778078); font:9px/1 var(--hdsi-font-mono); text-overflow:ellipsis; white-space:nowrap; }
+html[data-hdsi-theme="default"] .context-endpoint em { margin-left:auto; color:var(--kiy-moss, #718065); font:9px/1 var(--hdsi-font-mono); font-style:normal; white-space:nowrap; }
+html[data-hdsi-theme="default"] .context-route { border:1px solid var(--kiy-line, #d5d2c8); background:var(--kiy-panel, #f8f7f3); }
+html[data-hdsi-theme="default"] .context-route-row { display:flex; justify-content:space-between; gap:9px; padding:9px 10px; border-bottom:1px solid var(--kiy-line, #d5d2c8); color:var(--kiy-muted, #778078); font-size:10px; }
+html[data-hdsi-theme="default"] .context-route-row:last-child { border-bottom:0; }
+html[data-hdsi-theme="default"] .context-route-row b { color:var(--kiy-ink, #202824); font:10px/1 var(--hdsi-font-mono); font-weight:400; text-align:right; }
+html[data-hdsi-theme="default"] .context-route-row b em { color:var(--kiy-verm, #bd5d4e); font-style:normal; }
+html[data-hdsi-theme="default"] .context-route-row .route-accent { color:var(--kiy-verm, #bd5d4e); }
+html[data-hdsi-theme="default"] .context-muted { padding:5px 0; color:var(--kiy-muted, #778078); font-size:10px; }
+
+/* Detail Dock：参考稿的底部信息表，不再使用黑色日志式高亮。 */
+html[data-hdsi-theme="default"] .detail-panel {
+  border-top-color: var(--kiy-line-strong); background: var(--kiy-paper-2);
+}
+html[data-hdsi-theme="default"] .detail-tabs {
+  height: 34px; background: var(--kiy-panel); border-bottom-color: var(--kiy-line);
+}
+html[data-hdsi-theme="default"] .detail-tabs button {
+  height: 34px; padding: 0 12px; background: transparent; border-right-color: var(--kiy-line); color: var(--kiy-muted); font-size: 11px;
+}
+html[data-hdsi-theme="default"] .detail-tabs button:hover { color: var(--kiy-ink); background: var(--kiy-paper-2); }
+html[data-hdsi-theme="default"] .detail-tabs button.active { color: var(--kiy-ink); background: var(--kiy-paper); box-shadow: inset 0 -2px var(--kiy-verm); }
+html[data-hdsi-theme="default"] .detail-tabs span { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .detail-content { background: var(--kiy-paper); }
+html[data-hdsi-theme="default"] .detail-row { padding: 6px 10px; color: var(--kiy-ink); border-bottom-color: var(--kiy-line); background: transparent; }
+html[data-hdsi-theme="default"] .detail-row:hover { background: var(--kiy-panel); }
+html[data-hdsi-theme="default"] .detail-row time { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .detail-row b,
+html[data-hdsi-theme="default"] .detail-row span { color: var(--kiy-ink); }
+
+/* 连接、诊断和 Console 与主工作区共享同一纸面标题与内边距。 */
+html[data-hdsi-theme="default"] .connect-layout,
+html[data-hdsi-theme="default"] .connect-main,
+html[data-hdsi-theme="default"] .connect-side,
+html[data-hdsi-theme="default"] .logs-surface-pane,
+html[data-hdsi-theme="default"] .koishi-console-pane { background: var(--kiy-paper); }
+html[data-hdsi-theme="default"] .connect-layout { padding: 16px; gap: 18px; }
+html[data-hdsi-theme="default"] .step-card,
+html[data-hdsi-theme="default"] .connect-card,
+html[data-hdsi-theme="default"] .empty-state { border-color: var(--kiy-line); border-radius: 0; background: var(--kiy-panel); }
+html[data-hdsi-theme="default"] .logs-filter-bar { padding: 9px 12px; background: var(--kiy-panel); border-bottom-color: var(--kiy-line); }
+html[data-hdsi-theme="default"] .logs-filter-bar select,
+html[data-hdsi-theme="default"] .logs-filter-bar input { height: 28px; background: var(--kiy-paper); color: var(--kiy-ink); border-color: var(--kiy-line); border-radius: 0; }
+html[data-hdsi-theme="default"] .logs-footer { padding: 6px 12px; background: var(--kiy-panel); border-top-color: var(--kiy-line); color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .koishi-overlay { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .koishi-overlay dl { border-color: var(--kiy-line); }
+html[data-hdsi-theme="default"] .koishi-overlay dl div { border-bottom-color: var(--kiy-line); }
+
+/* 多功能视图：采用参考稿的“标题线 + 平面信息块”节奏，保留所有原有
+   控件和动态内容，只改变它们的外观层级。 */
+html[data-hdsi-theme="default"] .stats-view,
+html[data-hdsi-theme="default"] .session-grid,
+html[data-hdsi-theme="default"] .mixer-rack,
+html[data-hdsi-theme="default"] .stats-view { padding: 16px; }
+html[data-hdsi-theme="default"] .stats-grid { gap: 9px; }
+html[data-hdsi-theme="default"] .stats-card {
+  position: relative;
+  border: 1px solid var(--kiy-line);
+  border-radius: 0;
+  background: var(--kiy-panel);
+  padding: 12px 13px;
+  box-shadow: none;
+}
+html[data-hdsi-theme="default"] .stats-card::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 38px;
+  height: 2px;
+  background: var(--kiy-verm);
+}
+html[data-hdsi-theme="default"] .stats-card-label,
+html[data-hdsi-theme="default"] .stats-card-sub { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .stats-card-value { color: var(--kiy-ink); font-size: 19px; }
+html[data-hdsi-theme="default"] .stats-card-value small { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .rph-chart { border-bottom-color: var(--kiy-line); }
+html[data-hdsi-theme="default"] .rph-bar span { background: var(--kiy-indigo); }
+html[data-hdsi-theme="default"] .rph-bar small { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .session-grid { border-top: 1px solid var(--kiy-line); }
+html[data-hdsi-theme="default"] .session-clip {
+  border-left: 3px solid var(--kiy-indigo);
+  border-bottom: 1px solid var(--kiy-line);
+  border-radius: 0;
+  background: var(--kiy-panel);
+}
+html[data-hdsi-theme="default"] .session-clip:hover { background: var(--kiy-paper-2); }
+html[data-hdsi-theme="default"] .session-clip header { background: var(--kiy-paper-2); border-bottom-color: var(--kiy-line); }
+html[data-hdsi-theme="default"] .session-clip header b,
+html[data-hdsi-theme="default"] .session-index { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .session-clip p { color: var(--kiy-ink); }
+html[data-hdsi-theme="default"] .mixer-head {
+  padding: 10px 14px;
+  background: var(--kiy-panel);
+  border-bottom-color: var(--kiy-line-strong);
+}
+html[data-hdsi-theme="default"] .mixer-head strong { color: var(--kiy-verm); }
+html[data-hdsi-theme="default"] .mixer-head span { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .mixer-sections { background: var(--kiy-paper); border-bottom-color: var(--kiy-line); }
+html[data-hdsi-theme="default"] .mixer-section-btn { color: var(--kiy-muted); border-right-color: var(--kiy-line); }
+html[data-hdsi-theme="default"] .mixer-section-btn:hover,
+html[data-hdsi-theme="default"] .mixer-section-btn.active { color: var(--kiy-ink); background: var(--kiy-panel); box-shadow: inset 0 -2px var(--kiy-verm); }
+html[data-hdsi-theme="default"] .mixer-channel {
+  border: 1px solid var(--kiy-line);
+  border-radius: 0;
+  background: var(--kiy-panel);
+  box-shadow: none;
+}
+html[data-hdsi-theme="default"] .mixer-channel label { color: var(--kiy-ink); }
+html[data-hdsi-theme="default"] .mixer-channel .mixer-description { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .analysis-card {
+  border: 1px solid var(--kiy-line);
+  border-radius: 0;
+  background: var(--kiy-panel);
+  padding: 13px 14px;
+  margin-bottom: 10px;
+}
+html[data-hdsi-theme="default"] .analysis-card-title { color: var(--kiy-ink); font-weight: 500; letter-spacing: .05em; }
+html[data-hdsi-theme="default"] .analysis-card-title small { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .analysis-empty-hint { color: var(--kiy-muted); }
+html[data-hdsi-theme="default"] .connect-card {
+  border-color: var(--kiy-line);
+  border-radius: 0;
+  background: var(--kiy-panel);
+  box-shadow: none;
+}
+html[data-hdsi-theme="default"] .connect-card h3 { color: var(--kiy-ink); font-weight: 500; letter-spacing: .04em; }
+html[data-hdsi-theme="default"] .connect-card .muted { color: var(--kiy-muted); }
+
+@media (max-width: 1120px) {
+  html[data-hdsi-theme="default"] .transport-bar { height: 64px; min-height: 64px; padding: 0 12px; gap: 8px; }
+  html[data-hdsi-theme="default"] .brand-mark { flex-basis: 150px; }
+  html[data-hdsi-theme="default"] .surface-tabs button { min-width: 58px; padding-left: 7px; padding-right: 7px; }
+  html[data-hdsi-theme="default"] .studio-shell { height: calc(100vh - 95px); grid-template-columns: 200px minmax(0, 1fr) 250px; }
+}
+
+/* ── Typography and composition pass ────────────────────────────────────
+   Match the final host-shell rules at the end of typ0-v3-interface.html:
+   58px title bar, 28px status band, 13px UI text, and clear mono/UI roles.
+   Keep the dense timeline labels deliberately compact. */
+html[data-hdsi-theme="default"] body {
+  font-family: "Noto Sans SC", "Hiragino Sans GB", "Yu Gothic", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: .01em;
+}
+@media (min-width: 1121px) {
+  html[data-hdsi-theme="default"] .transport-bar { height: 58px; min-height: 58px; }
+  html[data-hdsi-theme="default"] .status-ruler { height: 28px; min-height: 28px; }
+  html[data-hdsi-theme="default"] .studio-shell { height: calc(100vh - 104px); }
+}
+@media (max-width: 1120px) {
+  html[data-hdsi-theme="default"] .transport-bar { height: 58px; min-height: 58px; }
+  html[data-hdsi-theme="default"] .studio-shell { height: calc(100vh - 89px); }
+}
+
+/* Topbar typography: compact system label, readable brand, and a story field
+   that reads as the active work rather than as a generic form control. */
+html[data-hdsi-theme="default"] .brand-mark { font-size: 12px; letter-spacing: .14em; }
+html[data-hdsi-theme="default"] .brand-mark .brand-text { font-size: 13px; font-weight: 600; letter-spacing: .14em; }
+html[data-hdsi-theme="default"] .brand-mark .brand-sub { top: 28px; font-size: 9px; letter-spacing: .16em; }
+html[data-hdsi-theme="default"] .brand-mark::after { top: 39px; font-size: 8px; letter-spacing: .15em; }
+html[data-hdsi-theme="default"] .surface-tabs button { min-width: 68px; padding: 0 10px; font-size: 11px; }
+html[data-hdsi-theme="default"] .surface-tabs button small { margin-top: 1px; font: 9px/1.2 var(--hdsi-font-mono); }
+html[data-hdsi-theme="default"] .transport-story { flex-basis: 170px; gap: 9px; }
+html[data-hdsi-theme="default"] .transport-story select {
+  width: min(240px, 100%);
+  height: 30px;
+  padding: 0 1px 2px;
+  border: 0;
+  border-bottom: 1px solid #4d5950;
+  border-radius: 0;
+  appearance: none;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: .03em;
+}
+html[data-hdsi-theme="default"] .transport-story::after {
+  content: "⌄";
+  flex: none;
+  margin-left: -22px;
+  color: #8f9990;
+  pointer-events: none;
+  font: 12px/1 var(--hdsi-font-mono);
+}
+html[data-hdsi-theme="default"] .run-state-text { font-size: 9px; }
+html[data-hdsi-theme="default"] #theme-menu-btn,
+html[data-hdsi-theme="default"] .layout-menu summary,
+html[data-hdsi-theme="default"] #more-menu summary { font-size: 10px; letter-spacing: .05em; }
+html[data-hdsi-theme="default"] #new-story { font-size: 11px; letter-spacing: .03em; }
+
+/* Workspace title follows the reference's single baseline: breadcrumb, view
+   name, then contextual description. The earlier block pseudo-label forced an
+   unwanted second row and made the whole header feel like a debug toolbar. */
+html[data-hdsi-theme="default"] #studio-surface .workspace-header > div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  line-height: 1.25;
+}
+html[data-hdsi-theme="default"] #studio-surface .workspace-header > div:first-child::before {
+  display: inline;
+  flex: none;
+  margin: 0 2px 0 0;
+  font-size: 8px;
+  letter-spacing: .12em;
+}
+html[data-hdsi-theme="default"] #studio-surface .workspace-header strong {
+  flex: none;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: .03em;
+}
+html[data-hdsi-theme="default"] #studio-surface .workspace-header span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.35;
+}
+html[data-hdsi-theme="default"] .workspace-header { height: 48px; min-height: 48px; }
+html[data-hdsi-theme="default"] .workspace-actions button,
+html[data-hdsi-theme="default"] .workspace-actions label { font-size: 11px; }
+
+/* Raise utility text to the reference's readable 11–12px range while keeping
+   its mono metadata small and aligned. */
+html[data-hdsi-theme="default"] .panel-header strong { font-size: 13px; letter-spacing: .04em; }
+html[data-hdsi-theme="default"] .panel-header .panel-sub { font-size: 9px; }
+html[data-hdsi-theme="default"] .panel-header > span { font-size: 9px; }
+html[data-hdsi-theme="default"] .browser-tools input { font-size: 12px; }
+html[data-hdsi-theme="default"] .story-strip b { font-size: 13px; line-height: 1.3; }
+html[data-hdsi-theme="default"] .story-strip small { font-size: 11px; line-height: 1.35; }
+html[data-hdsi-theme="default"] .browser-section summary { font-size: 9px; line-height: 1.5; }
+html[data-hdsi-theme="default"] .browser-item { min-height: 32px; font-size: 12px; line-height: 1.4; }
+html[data-hdsi-theme="default"] .track-menu-item { font-size: 11px; }
+html[data-hdsi-theme="default"] .track-menu-item small { font-size: 10px; }
+html[data-hdsi-theme="default"] .inspector-content { font-size: 12px; line-height: 1.5; }
+html[data-hdsi-theme="default"] .inspect-title { font-size: 15px; font-weight: 500; letter-spacing: .03em; line-height: 1.25; }
+html[data-hdsi-theme="default"] .inspect-subtitle { margin-top: 4px; font-size: 11px; line-height: 1.45; }
+html[data-hdsi-theme="default"] .inspector-content .inspect-grid dt { font-size: 10px; letter-spacing: .04em; }
+html[data-hdsi-theme="default"] .inspector-content .inspect-grid dd { font-size: 11px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-hdsi-theme="default"] .inspector-content button { min-height: 30px; font-size: 11px; }
+html[data-hdsi-theme="default"] .detail-tabs button { font-size: 11px; letter-spacing: .02em; }
+html[data-hdsi-theme="default"] .detail-tabs span { font-size: 9px; letter-spacing: .06em; }
+html[data-hdsi-theme="default"] .detail-row { font-size: 10px; line-height: 1.45; }
+html[data-hdsi-theme="default"] .status-ruler { font-size: 9px; letter-spacing: .04em; }
+html[data-hdsi-theme="default"] .status-ruler > span { line-height: 1; }
+
+/* Long-form multi-function pages inherit the same type scale and editorial
+   rhythm instead of falling back to the compact legacy workstation labels. */
+html[data-hdsi-theme="default"] .stats-card-label,
+html[data-hdsi-theme="default"] .analysis-card-title { font-size: 11px; }
+html[data-hdsi-theme="default"] .stats-card-sub,
+html[data-hdsi-theme="default"] .analysis-card-title small { font-size: 10px; line-height: 1.45; }
+html[data-hdsi-theme="default"] .stats-card-value { font-size: 22px; line-height: 1.2; }
+html[data-hdsi-theme="default"] .mixer-head strong { font-size: 12px; }
+html[data-hdsi-theme="default"] .mixer-head span { font-size: 11px; }
+html[data-hdsi-theme="default"] .mixer-section-btn { font-size: 11px; }
+html[data-hdsi-theme="default"] .mixer-channel label { font-size: 13px; line-height: 1.4; }
+html[data-hdsi-theme="default"] .mixer-channel .mixer-description { font-size: 12px; line-height: 1.55; }
+html[data-hdsi-theme="default"] .session-clip p { font-size: 13px; line-height: 1.65; }
+html[data-hdsi-theme="default"] .connect-card h3 { font-size: 15px; line-height: 1.35; }
+html[data-hdsi-theme="default"] .connect-card .muted,
+html[data-hdsi-theme="default"] .step-main small { font-size: 12px; line-height: 1.6; }
+html[data-hdsi-theme="default"] .logs-surface-pane { font-size: 11px; line-height: 1.55; }
+
+/* ── Final topbar reconstruction ─────────────────────────────────────────
+   The reference header is a single continuous band: a fixed identity block,
+   full-height surface tabs, an editorial story title, then compact status
+   controls. Reposition the existing host controls into those same bands. */
+html[data-hdsi-theme="default"] .transport-bar {
+  position: relative;
+  align-items: stretch;
+  gap: 0;
+  padding: 0 12px;
+  overflow: visible;
+}
+html[data-hdsi-theme="default"] .brand-mark {
+  position: relative;
+  flex: 0 0 196px;
+  height: 100%;
+  align-self: stretch;
+  display: block;
+  margin-right: 8px;
+  font-size: 0;
+}
+html[data-hdsi-theme="default"] .brand-mark::before {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  transform: translateY(-50%);
+}
+html[data-hdsi-theme="default"] .brand-mark .brand-text {
+  position: absolute;
+  left: 42px;
+  top: 9px;
+  color: var(--kiy-paper);
+  font: 600 14px/1.05 var(--hdsi-font-ui);
+  letter-spacing: .13em;
+  white-space: nowrap;
+}
+html[data-hdsi-theme="default"] .brand-mark .brand-text::after {
+  content: " / typ·0";
+  color: #aeb9a8;
+  font-weight: 400;
+  letter-spacing: .08em;
+}
+html[data-hdsi-theme="default"] .brand-mark .brand-sub { display: none; }
+html[data-hdsi-theme="default"] .brand-mark::after {
+  left: 42px;
+  top: 28px;
+  color: #8f9990;
+  font: 9px/1.25 var(--hdsi-font-mono);
+  letter-spacing: .16em;
+  white-space: pre;
+  content: "STORY OPERATING\A SYSTEM";
+}
+
+/* Keep the default mark typographic. The old t0 badge was an inherited
+   decorative pseudo element and rendered as an unexplained box at small sizes. */
+html[data-hdsi-theme="default"] .brand-mark::before {
+  content: none;
+  display: none;
+}
+html[data-hdsi-theme="default"] .brand-mark .brand-text {
+  left: 0;
+}
+html[data-hdsi-theme="default"] .brand-mark::after {
+  left: 0;
+}
+
+html[data-hdsi-theme="default"] .surface-tabs {
+  height: 100%;
+  flex: 0 0 auto;
+  align-self: stretch;
+  border: 0;
+  border-left: 1px solid #4d5950;
+  background: transparent;
+}
+html[data-hdsi-theme="default"] .surface-tabs button {
+  min-width: 82px;
+  height: 100%;
+  padding: 0 12px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-right: 1px solid #4d5950;
+  border-bottom: 2px solid transparent;
+  font-size: 12px;
+  line-height: 1;
+}
+html[data-hdsi-theme="default"] .surface-tabs button small {
+  margin: 0;
+  font: 9px/1 var(--hdsi-font-mono);
+  letter-spacing: .03em;
+}
+html[data-hdsi-theme="default"] .transport-story {
+  flex: 0 1 165px;
+  min-width: 135px;
+  max-width: 175px;
+  height: 100%;
+  margin: 0 12px 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: .14em;
+}
+html[data-hdsi-theme="default"] .transport-story > span {
+  flex: none;
+  color: #768077;
+  font: 9px/1 var(--hdsi-font-mono);
+  letter-spacing: .15em;
+}
+html[data-hdsi-theme="default"] .transport-story select {
+  flex: 1;
+  width: auto;
+  min-width: 130px;
+  max-width: 145px;
+  height: 32px;
+  padding: 0 23px 1px 0;
+  color: var(--kiy-paper);
+  border-bottom-color: #4d5950;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+html[data-hdsi-theme="default"] .transport-story::after {
+  margin-left: -30px;
+  font-size: 12px;
+}
+html[data-hdsi-theme="default"] .transport-state {
+  flex: none;
+  height: 100%;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  border-left: 1px solid rgba(77,89,80,.55);
+}
+html[data-hdsi-theme="default"] .transport-state::before {
+  content: "RUNNING";
+  margin-right: 3px;
+  color: #aeb9a8;
+  font: 9px/1 var(--hdsi-font-mono);
+  letter-spacing: .08em;
+}
+html[data-hdsi-theme="default"] .transport-state button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 12px;
+}
+html[data-hdsi-theme="default"] .run-state-text {
+  /* The phase is already expressed by the RUNNING/MUTE/PAUSE control group.
+     Keeping this diagnostic sentence in the title bar is what caused the
+     right side to clip in the real 1440px Electron window. */
+  display: none;
+}
+html[data-hdsi-theme="default"] .resource-state {
+  flex: none;
+  align-self: center;
+  min-width: 60px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  font-size: 9px;
+}
+html[data-hdsi-theme="default"] .clock {
+  flex: none;
+  align-self: center;
+  min-width: 56px;
+  color: #bd7b6f;
+  font-size: 10px;
+  text-align: center;
+}
+html[data-hdsi-theme="default"] #theme-menu-btn,
+html[data-hdsi-theme="default"] .layout-menu,
+html[data-hdsi-theme="default"] #more-menu {
+  flex: none;
+  align-self: center;
+}
+html[data-hdsi-theme="default"] #theme-menu-btn { margin-left: 3px; padding: 7px 8px; }
+html[data-hdsi-theme="default"] .layout-menu summary,
+html[data-hdsi-theme="default"] #more-menu summary { padding: 7px 8px; }
+html[data-hdsi-theme="default"] #new-story {
+  flex: none;
+  align-self: center;
+  min-height: 34px;
+  margin-left: 5px;
+  padding: 0 12px;
+}
+
+/* Header and status text share the same baseline as the reference paper UI. */
+html[data-hdsi-theme="default"] .status-ruler {
+  padding: 0 12px;
+  gap: 12px;
+  letter-spacing: .05em;
+}
+html[data-hdsi-theme="default"] .workspace-header {
+  padding: 0 12px;
+}
+html[data-hdsi-theme="default"] #studio-surface .workspace-header > div:first-child::before {
+  content: "ARRANGEMENT  /  STORY";
+  letter-spacing: .12em;
+}
+
+@media (max-width: 1120px) {
+  html[data-hdsi-theme="default"] .brand-mark { flex-basis: 165px; }
+  html[data-hdsi-theme="default"] .surface-tabs button { min-width: 64px; padding: 0 7px; }
+  html[data-hdsi-theme="default"] .transport-story { min-width: 150px; margin-left: 10px; margin-right: 7px; }
+  html[data-hdsi-theme="default"] .transport-state::before,
+  html[data-hdsi-theme="default"] .run-state-text { display: none; }
+  html[data-hdsi-theme="default"] .clock { min-width: 56px; }
+}
+
+/* Electron's normal desktop window is narrower than the 1440px visual
+   acceptance viewport. Keep the reference composition intact while making
+   every topbar action reachable instead of letting the right edge clip. */
+@media (max-width: 1300px) and (min-width: 1121px) {
+  html[data-hdsi-theme="default"] .brand-mark { flex-basis: 166px; }
+  html[data-hdsi-theme="default"] .surface-tabs button { min-width: 64px; padding-left: 8px; padding-right: 8px; }
+  html[data-hdsi-theme="default"] .transport-story {
+    flex: 0 1 220px;
+    min-width: 150px;
+    max-width: 250px;
+    margin-left: 10px;
+    margin-right: 8px;
+  }
+  html[data-hdsi-theme="default"] .transport-story select { min-width: 100px; max-width: 190px; font-size: 12px; }
+  html[data-hdsi-theme="default"] .run-state-text { display: none; }
+  html[data-hdsi-theme="default"] .resource-state { min-width: 66px; padding-left: 5px; padding-right: 5px; }
+  html[data-hdsi-theme="default"] .clock { min-width: 60px; font-size: 9px; }
+  html[data-hdsi-theme="default"] #theme-menu-btn,
+  html[data-hdsi-theme="default"] .layout-menu summary,
+  html[data-hdsi-theme="default"] #more-menu summary { padding-left: 5px; padding-right: 5px; font-size: 9px; }
+  html[data-hdsi-theme="default"] #new-story { margin-left: 2px; padding-left: 9px; padding-right: 9px; font-size: 10px; }
+}
+
+
+
+/* Overview ⇄ Timeline switches reuse the same rail nodes, without a morph. */
+.studio-mode-viewport > .arrangement,
+.studio-mode-viewport > .story-hud {
+  transition: none !important;
+  animation: none !important;
+}
+
+
+/* V4.3 shared rail stage: the compact Overview rails and the expanded
+   Timeline rails are the same three nodes in #arrangement. The HUD reserves
+   their footprint above its content; no node is reparented during a morph. */
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement {
+  display:block;
+  position:absolute;
+  inset:0 0 auto;
+  z-index:4;
+  width:100%;
+  height:calc(var(--studio-rail-row-height) * 3 + 2px);
+  max-height:none;
+  flex:none;
+  visibility:visible;
+  opacity:1;
+  overflow:hidden;
+  clip-path:none;
+  pointer-events:auto;
+  background:transparent;
+}
+.studio-mode-viewport[data-studio-view="overview"] > .story-hud {
+  position:relative;
+  z-index:1;
+  box-sizing:border-box;
+  height:100%;
+  max-height:none;
+  overflow:auto;
+  padding-top:calc(var(--studio-rail-row-height) * 3 + 16px) !important;
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track:not(.script-track):not(.message-track.receive):not(.message-track.send),
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-footer {
+  display:none !important;
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.script-track,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.receive,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.send {
+  display:grid;
+  grid-template-columns:166px minmax(0,1fr);
+  height:var(--studio-rail-row-height) !important;
+  min-height:var(--studio-rail-row-height) !important;
+  overflow:hidden;
+  border-bottom:1px solid var(--kiy-line, var(--hdsi-color-border));
+  background:var(--kiy-paper, var(--hdsi-color-surface));
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.script-track > header,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.receive > header,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.send > header {
+  display:grid;
+  grid-template-columns:12px minmax(0,1fr);
+  align-items:center;
+  gap:5px;
+  height:var(--studio-rail-row-height);
+  min-height:var(--studio-rail-row-height);
+  padding:0 12px;
+  overflow:hidden;
+  border-right:1px solid var(--kiy-line-strong, var(--hdsi-color-border));
+  background:rgba(248,247,243,.72);
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.script-track > header b,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.receive > header b,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.send > header b {
+  min-width:0;
+  overflow:hidden;
+  font:11px/1 var(--hdsi-font-mono);
+  letter-spacing:.13em;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.script-track > header small,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.receive > header small,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.send > header small {
+  grid-column:2;
+  margin:0;
+  overflow:hidden;
+  color:var(--kiy-muted, var(--hdsi-color-text-muted));
+  font:10px/1 var(--hdsi-font-mono);
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.script-track .track-lane,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.receive .track-lane,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.send .track-lane {
+  height:var(--studio-rail-row-height) !important;
+  min-height:var(--studio-rail-row-height) !important;
+  overflow:hidden;
+  background-color:var(--kiy-paper, var(--hdsi-color-surface));
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.script-track .clip,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.receive .clip,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.send .clip {
+  top:5px !important;
+  height:24px !important;
+  min-height:0 !important;
+  max-height:24px !important;
+  padding:0 7px !important;
+  overflow:hidden;
+  border-radius:1px;
+  font-size:10px;
+  line-height:22px;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.script-track .clip b,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.receive .clip b,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement > .arrangement-track.message-track.send .clip b {
+  display:inline;
+  margin:0;
+  font-size:10px;
+  line-height:1;
+  white-space:nowrap;
+}
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement .clip small,
+.studio-mode-viewport[data-studio-view="overview"] > .arrangement .clip .clip-chips {
+  display:none;
+}
+.studio-mode-viewport[data-studio-view="overview"]:has(> .arrangement:empty) > .story-hud {
+  padding-top:12px !important;
+}
+
+/* Script detail: separate metadata from the original, multiline script text. */
+.script-detail { min-width:0; padding:16px 20px 24px; }
+.script-detail > header { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 16px; margin-bottom:18px; }
+.script-detail > header strong { color:var(--hdsi-color-text-primary); font-size:13px; font-weight:600; }
+.script-detail > header span { color:var(--hdsi-color-text-muted); font-size:11px; }
+.script-detail > article { max-width:80ch; }
+.script-detail > article + article { margin-top:18px; padding-top:16px; border-top:1px solid var(--hdsi-color-border); }
+.script-detail > article > div { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 12px; color:var(--hdsi-color-text-muted); font:11px/1.6 var(--hdsi-font-mono); }
+.script-detail > article > div b { color:var(--hdsi-color-text-primary); }
+.script-detail > article > div em { font-style:normal; }
+.script-detail p { margin:8px 0 0; color:var(--hdsi-color-text-primary); font:13px/1.75 var(--hdsi-font-ui); white-space:pre-wrap; }

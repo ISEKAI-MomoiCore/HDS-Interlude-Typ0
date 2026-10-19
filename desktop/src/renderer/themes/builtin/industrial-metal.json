@@ -1,0 +1,211 @@
+{
+  "components": {
+    "input": {
+      "borderRadius": "minimal",
+      "paddingX": "9px",
+      "fontSize": "base",
+      "height": "27px",
+      "borderWidth": "thin"
+    },
+    "panel": {
+      "borderRadius": "minimal",
+      "padding": "md",
+      "shadow": "small"
+    },
+    "button": {
+      "fontWeight": "medium",
+      "height": {
+        "sm": "24px",
+        "lg": "30px",
+        "md": "27px"
+      },
+      "shadow": "small",
+      "borderRadius": "minimal",
+      "paddingX": {
+        "sm": "7px",
+        "lg": "15px",
+        "md": "11px"
+      },
+      "hoverTransform": "none"
+    },
+    "clip": {
+      "borderRadius": "minimal",
+      "borderWidth": "thin",
+      "shadow": "small",
+      "padding": "sm"
+    },
+    "track": {
+      "borderRadius": "minimal",
+      "height": "30px",
+      "shadow": "minimal"
+    }
+  },
+  "spacing": {
+    "density": "compact",
+    "lineHeight": {
+      "tight": 1.25,
+      "normal": 1.4,
+      "relaxed": 1.65
+    },
+    "values": {
+      "2xl": "30px",
+      "md": "11px",
+      "lg": "15px",
+      "xs": "3px",
+      "3xl": "38px",
+      "xl": "22px",
+      "sm": "7px"
+    },
+    "base": 7,
+    "scale": 0.9
+  },
+  "effects": {
+    "shadowStyle": "inset",
+    "backdropBlur": "0px",
+    "glowEnabled": false,
+    "glowColors": {
+      "accent": "none",
+      "subtle": "none"
+    },
+    "glowIntensity": 0,
+    "opacity": {
+      "disabled": 0.5,
+      "normal": 1.0,
+      "muted": 0.7
+    },
+    "gradientsEnabled": true,
+    "shadows": {
+      "xlarge": "inset 0 6px 12px rgba(0,0,0,0.7)",
+      "large": "inset 0 4px 8px rgba(0,0,0,0.6)",
+      "none": "none",
+      "minimal": "inset 0 1px 2px rgba(0,0,0,0.3)",
+      "medium": "inset 0 3px 6px rgba(0,0,0,0.5)",
+      "small": "inset 0 2px 4px rgba(0,0,0,0.4)"
+    },
+    "gradientAngle": "180deg"
+  },
+  "presets": {
+    "animationLevel": "minimal",
+    "densityPreset": "compact",
+    "visualStyle": "industrial"
+  },
+  "typography": {
+    "fontWeight": {
+      "semibold": 600,
+      "medium": 500,
+      "bold": 700,
+      "normal": 400
+    },
+    "letterSpacing": {
+      "tight": "0",
+      "normal": "0.01em",
+      "wide": "0.02em"
+    },
+    "fontFamily": {
+      "display": "system-ui, sans-serif",
+      "ui": "system-ui, sans-serif",
+      "mono": "Consolas, monospace"
+    },
+    "fontSize": {
+      "md": "13px",
+      "base": "12px",
+      "xs": "10px",
+      "lg": "14px",
+      "xl": "16px",
+      "sm": "11px"
+    }
+  },
+  "author": "HDSI Team",
+  "colors": {
+    "accent": {
+      "secondary": "#ffaa00",
+      "primary": "#ffd700",
+      "tertiary": "#ff8800"
+    },
+    "tracks": {
+      "script": [
+        "#ffd700",
+        "#ffdd33"
+      ],
+      "state": [
+        "#00ff88",
+        "#33ff99"
+      ],
+      "receive": [
+        "#00aaff",
+        "#33bbff"
+      ],
+      "alter": [
+        "#ff6699",
+        "#ff88aa"
+      ],
+      "media": [
+        "#ffaa00",
+        "#ffbb33"
+      ],
+      "send": [
+        "#aa88ff",
+        "#bb99ff"
+      ]
+    },
+    "background": {
+      "surface": "#252525",
+      "elevated": "#2f2f2f",
+      "canvas": "#1a1a1a",
+      "highlight": "#454545",
+      "panel": "#3a3a3a"
+    },
+    "text": {
+      "secondary": "#c0c0c0",
+      "primary": "#f0f0f0",
+      "tertiary": "#909090",
+      "muted": "#707070"
+    },
+    "status": {
+      "success": "#00ff88",
+      "error": "#ff4444",
+      "info": "#00aaff",
+      "warning": "#ffaa00"
+    }
+  },
+  "description": "工业金属风格，机械感设计",
+  "version": "2.0.0",
+  "geometry": {
+    "borderRadius": {
+      "xlarge": "4px",
+      "full": "999px",
+      "large": "3px",
+      "none": "0px",
+      "minimal": "1px",
+      "medium": "2px",
+      "small": "2px"
+    },
+    "borderWidth": {
+      "thick": "2px",
+      "thin": "1px",
+      "normal": "1px"
+    },
+    "style": "angular",
+    "outlineStyle": "solid"
+  },
+  "id": "industrial-metal",
+  "animation": {
+    "defaultDuration": "fast",
+    "speed": "fast",
+    "duration": {
+      "slow": "250ms",
+      "normal": "150ms",
+      "fast": "100ms",
+      "instant": "0ms",
+      "slower": "350ms"
+    },
+    "easing": {
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)"
+    },
+    "defaultEasing": "easeOut",
+    "enabled": true
+  },
+  "category": "style",
+  "name": "Industrial Metal",
+  "colorScheme": "dark"
+}

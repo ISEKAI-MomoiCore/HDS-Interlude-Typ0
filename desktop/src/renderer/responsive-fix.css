@@ -1,0 +1,83 @@
+/* Responsive geometry loaded after the theme sheets. The renderer persists
+   panel sizes inline, so these rules keep narrow windows usable. */
+/* Overflow actions replace top-bar controls that are intentionally compacted on narrow windows. */
+.responsive-more-action { display: none !important; }
+@media (max-width: 1120px) and (min-width: 861px) {
+  html[data-hdsi-theme="default"] .studio-shell {
+    height: calc(100vh - 89px);
+  }
+  html[data-hdsi-theme="default"] .inspector-panel {
+    position: fixed; top: 89px; right: 0; bottom: 0; width: min(300px, 82vw);
+    z-index: 40; transform: translateX(100%); box-shadow: -8px 0 24px var(--hdsi-shadow-soft);
+  }
+  html[data-hdsi-theme="default"] .inspector-panel.panel-open { transform: translateX(0); }
+  html[data-hdsi-theme="default"] #inspector-fab { display: inline-flex; top: 96px; }
+  html[data-hdsi-theme="default"] #browser-fab { display: none !important; }
+  html[data-hdsi-theme="default"] .layout-menu:not(#more-menu),
+  html[data-hdsi-theme="default"] #theme-menu-btn,
+  html[data-hdsi-theme="default"] .resource-state,
+  html[data-hdsi-theme="default"] .run-state-text { display: none !important; }
+  html[data-hdsi-theme="default"] .transport-bar { overflow: visible; }
+  html[data-hdsi-theme="default"] #responsive-theme-menu { display: block !important; }
+}
+
+@media (max-width: 860px) {
+  html[data-hdsi-theme="default"] .studio-shell {
+    height: calc(100vh - 89px);
+  }
+  html[data-hdsi-theme="default"] .browser-panel {
+    position: fixed; top: 89px; left: 0; bottom: 0; width: min(248px, 80vw);
+    z-index: 40; transform: translateX(-100%); box-shadow: 8px 0 24px var(--hdsi-shadow-soft);
+  }
+  html[data-hdsi-theme="default"] .browser-panel.panel-open { transform: translateX(0); }
+  html[data-hdsi-theme="default"] .inspector-panel,
+  html[data-hdsi-theme="default"] #inspector-fab { display: none !important; }
+  html[data-hdsi-theme="default"] .detail-panel { grid-column: 1 !important; }
+  html[data-hdsi-theme="default"] #browser-fab { display: inline-flex; top: 96px; }
+  html[data-hdsi-theme="default"] .layout-menu:not(#more-menu),
+  html[data-hdsi-theme="default"] #theme-menu-btn,
+  html[data-hdsi-theme="default"] #new-story,
+  html[data-hdsi-theme="default"] .resource-state,
+  html[data-hdsi-theme="default"] .run-state-text { display: none !important; }
+  html[data-hdsi-theme="default"] .transport-bar { overflow: visible; gap: 6px; padding: 0 8px; }
+  html[data-hdsi-theme="default"] .responsive-more-action { display: block !important; }
+  html[data-hdsi-theme="default"] .brand-mark { flex: 0 0 104px; width: 104px; margin-right: 0; }
+  html[data-hdsi-theme="default"] .brand-mark .brand-text { left: 0; }
+  html[data-hdsi-theme="default"] .brand-mark::after { display: none; }
+  html[data-hdsi-theme="default"] .surface-tabs { flex: 1 1 auto; min-width: 0; }
+  html[data-hdsi-theme="default"] .surface-tabs button { min-width: 0; flex: 1 1 0; padding-left: 5px; padding-right: 5px; }
+  html[data-hdsi-theme="default"] .transport-story { flex: 0 1 112px; min-width: 72px; margin: 0; gap: 0; }
+  html[data-hdsi-theme="default"] .transport-story > span { display: none; }
+  html[data-hdsi-theme="default"] .transport-story select { min-width: 0; width: 100%; max-width: 112px; font-size: 11px; }
+  html[data-hdsi-theme="default"] .transport-state { flex: none; }
+  html[data-hdsi-theme="default"] .transport-state::before { display: none; }
+  html[data-hdsi-theme="default"] .transport-state button { width: 23px; min-width: 23px; padding: 0; }
+  html[data-hdsi-theme="default"] .clock { flex: none; min-width: 55px; margin-left: auto; font-size: 9px; }
+  html[data-hdsi-theme="default"] .status-ruler { gap: 8px; padding-left: 8px; padding-right: 8px; overflow: hidden; }
+  html[data-hdsi-theme="default"] .status-ruler > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  html[data-hdsi-theme="default"] .status-ruler .ruler { min-width: 24px; }
+  html[data-hdsi-theme="default"] .studio-hud-context,
+  html[data-hdsi-theme="default"] .studio-hud-lower { grid-template-columns: minmax(0, 1fr); }
+  html[data-hdsi-theme="default"] .studio-hud-signal strong,
+  html[data-hdsi-theme="default"] .studio-hud-signal span { white-space: normal; }
+  html[data-hdsi-theme="default"] [data-hud-scene] .studio-hud-item { min-height: 96px; }
+}
+
+@media (max-width: 600px) {
+  html[data-hdsi-theme="default"] .brand-mark { flex-basis: 78px; width: 78px; }
+  html[data-hdsi-theme="default"] .brand-mark .brand-text { font-size: 11px; letter-spacing: .08em; }
+  html[data-hdsi-theme="default"] .surface-tabs { max-width: 156px; }
+  html[data-hdsi-theme="default"] .surface-tabs button { font-size: 10px; padding-left: 3px; padding-right: 3px; }
+  html[data-hdsi-theme="default"] .surface-tabs button small { display: none; }
+  html[data-hdsi-theme="default"] .transport-story { flex-basis: 70px; min-width: 64px; }
+  html[data-hdsi-theme="default"] .transport-story select { max-width: 70px; font-size: 10px; }
+  html[data-hdsi-theme="default"] .transport-state { padding-left: 2px; padding-right: 2px; gap: 1px; }
+  html[data-hdsi-theme="default"] .transport-state button { width: 20px; min-width: 20px; font-size: 10px; }
+  html[data-hdsi-theme="default"] .clock { min-width: 44px; font-size: 8px; }
+  html[data-hdsi-theme="default"] .status-ruler { gap: 6px; font-size: 8px; }
+  html[data-hdsi-theme="default"] #channel-state,
+  html[data-hdsi-theme="default"] #model-state { display: none; }
+  html[data-hdsi-theme="default"] .detail-tabs button { padding-left: 8px; padding-right: 8px; font-size: 10px; }
+}
+
+

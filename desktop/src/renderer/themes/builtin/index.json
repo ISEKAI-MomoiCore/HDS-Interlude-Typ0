@@ -1,0 +1,280 @@
+{
+  "themes": [
+    {
+      "id": "cyber-blue",
+      "name": "Cyber Blue",
+      "file": "cyber-blue.json",
+      "category": "color",
+      "v3": {
+        "density": "workbench",
+        "motion": "standard",
+        "tags": [
+          "cool",
+          "neon",
+          "night",
+          "interactive"
+        ],
+        "description": "冷蓝霓虹工作台，强调夜间识别、轨道分层和快速状态反馈。"
+      }
+    },
+    {
+      "id": "cyberpunk-neon",
+      "name": "Cyberpunk Neon",
+      "file": "cyberpunk-neon.json",
+      "category": "custom",
+      "v3": {
+        "density": "workbench",
+        "motion": "standard",
+        "tags": [
+          "neon",
+          "expressive",
+          "high-contrast",
+          "interactive"
+        ],
+        "description": "高对比赛博霓虹工作台，适合需要明显状态层级和快速切换的场景。"
+      }
+    },
+    {
+      "id": "dark-mint",
+      "name": "Dark Mint",
+      "file": "dark-mint.json",
+      "category": "color",
+      "v3": {
+        "density": "relaxed",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "green",
+          "long-session",
+          "low-stimulation"
+        ],
+        "description": "低刺激薄荷暗色主题，降低长时间阅读和回顾时的视觉压力。"
+      }
+    },
+    {
+      "id": "deep-purple",
+      "name": "Deep Purple",
+      "file": "deep-purple.json",
+      "category": "color",
+      "v3": {
+        "density": "workbench",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "purple",
+          "studio",
+          "long-session"
+        ],
+        "description": "深紫 Studio 工作台，保留高信息密度并降低持续操作时的动效干扰。"
+      }
+    },
+    {
+      "id": "dracula",
+      "name": "Dracula",
+      "file": "dracula.json",
+      "category": "color",
+      "v3": {
+        "density": "workbench",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "purple",
+          "contrast",
+          "long-session"
+        ],
+        "description": "深色高对比编辑主题，适合持续阅读、编辑和状态追踪。"
+      }
+    },
+    {
+      "id": "fl-studio-pro",
+      "name": "FL Studio Pro",
+      "file": "fl-studio-pro.json",
+      "category": "custom",
+      "v3": {
+        "density": "compact",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "studio",
+          "dense",
+          "production"
+        ],
+        "description": "面向生产流程的紧凑 DAW 工作台，优先展示轨道、状态和控制信息。"
+      }
+    },
+    {
+      "id": "flat-minimal",
+      "name": "Flat Minimal",
+      "file": "flat-minimal.json",
+      "category": "style",
+      "v3": {
+        "density": "compact",
+        "motion": "off",
+        "tags": [
+          "dark",
+          "flat",
+          "dense",
+          "diagnostic"
+        ],
+        "description": "无装饰高密度平面主题，适合日志、时间线和诊断工作。"
+      }
+    },
+    {
+      "id": "glass-morphism",
+      "name": "Glass Morphism",
+      "file": "glass-morphism.json",
+      "category": "style",
+      "v3": {
+        "density": "standard",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "glass",
+          "layered",
+          "modern"
+        ],
+        "description": "分层毛玻璃主题，以适度空间和透明层次区分信息面板。"
+      }
+    },
+    {
+      "id": "industrial-metal",
+      "name": "Industrial Metal",
+      "file": "industrial-metal.json",
+      "category": "style",
+      "v3": {
+        "density": "compact",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "industrial",
+          "dense",
+          "mechanical"
+        ],
+        "description": "紧凑工业工作台，强化边界、分区和持续操作的反馈。"
+      }
+    },
+    {
+      "id": "minimalist-pro",
+      "name": "Minimalist Pro",
+      "file": "minimalist-pro.json",
+      "category": "style",
+      "v3": {
+        "density": "compact",
+        "motion": "off",
+        "tags": [
+          "dark",
+          "minimal",
+          "dense",
+          "focus"
+        ],
+        "description": "克制的专业高密度主题，减少装饰和动效以保持任务专注。"
+      }
+    },
+    {
+      "id": "nord",
+      "name": "Nord",
+      "file": "nord.json",
+      "category": "color",
+      "v3": {
+        "density": "relaxed",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "cool",
+          "reading",
+          "long-session"
+        ],
+        "description": "冷静蓝灰阅读主题，适合长时间回顾、检查和低刺激工作。"
+      }
+    },
+    {
+      "id": "notion-clean",
+      "name": "Notion Clean",
+      "file": "notion-clean.json",
+      "category": "custom",
+      "v3": {
+        "density": "relaxed",
+        "motion": "subtle",
+        "tags": [
+          "light",
+          "reading",
+          "documentation",
+          "low-stimulation"
+        ],
+        "description": "清爽浅色阅读主题，适合配置、文档和较长文本内容。"
+      }
+    },
+    {
+      "id": "solarized-dark",
+      "name": "Solarized Dark",
+      "file": "solarized-dark.json",
+      "category": "color",
+      "v3": {
+        "density": "relaxed",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "reading",
+          "low-stimulation",
+          "long-session"
+        ],
+        "description": "护眼暗色阅读主题，降低高亮和过度动效对持续阅读的干扰。"
+      }
+    },
+    {
+      "id": "split-tone-modern",
+      "name": "Split Tone Modern",
+      "file": "split-tone-modern.json",
+      "category": "color",
+      "v3": {
+        "density": "workbench",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "blue",
+          "purple",
+          "workbench"
+        ],
+        "description": "冷蓝与靛紫分色工作台，适合多区域并行操作和状态对照。"
+      }
+    },
+    {
+      "id": "tokyo-night",
+      "name": "Tokyo Night",
+      "file": "tokyo-night.json",
+      "category": "color",
+      "v3": {
+        "density": "workbench",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "japanese",
+          "night",
+          "workbench"
+        ],
+        "description": "现代日式夜间工作台，使用克制的蓝紫层级组织轨道与面板。"
+      }
+    },
+    {
+      "id": "warm-studio",
+      "name": "Warm Studio",
+      "file": "warm-studio.json",
+      "category": "color",
+      "v3": {
+        "density": "standard",
+        "motion": "subtle",
+        "tags": [
+          "dark",
+          "warm",
+          "creative",
+          "studio"
+        ],
+        "description": "暖色创意工作台，适合演示、编排和需要柔和重点色的场景。"
+      }
+    }
+  ],
+  "default": {
+    "id": "default",
+    "name": "typ·0 原生"
+  }
+}

@@ -1,0 +1,28 @@
+# ── 依赖与构建产物 ──
+node_modules/
+dist/
+*.tsbuildinfo
+
+# ── 运行时数据与密钥（开发模式 dataRoot=appRoot 时产生在 desktop/ 下）──
+# 剧本目录含真实用户数据（人设、koishi.yml、SQLite 库），任何情况不得入库
+desktop/stories/
+desktop/backups/
+desktop/trash/
+desktop/logs/
+desktop/usage/
+desktop/theme-packs/
+desktop/plugins-runtime/
+desktop/instance/
+desktop/accounts.json
+desktop/bindings.json
+desktop/secrets.json
+desktop/onebot-token
+
+# npm 是唯一包管理工作流；历史遗留的 yarn.lock 不入库
+desktop/yarn.lock
+
+# ── 本地临时文件 ──
+*.log
+.typ-0-runtime-tests.cjs
+.DS_Store
+Thumbs.db

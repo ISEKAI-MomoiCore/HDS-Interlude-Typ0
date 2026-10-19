@@ -1,0 +1,227 @@
+{
+  "description": "清新薄荷绿，护眼配色",
+  "effects": {
+    "glowEnabled": true,
+    "shadows": {
+      "none": "none",
+      "xlarge": "0 16px 32px rgba(0,0,0,0.3)",
+      "minimal": "0 1px 2px rgba(0,0,0,0.1)",
+      "medium": "0 4px 8px rgba(0,0,0,0.2)",
+      "large": "0 8px 16px rgba(0,0,0,0.25)",
+      "small": "0 2px 4px rgba(0,0,0,0.15)"
+    },
+    "glowColors": {
+      "subtle": "0 0 10px rgba(16,185,129,0.25), 0 0 20px rgba(16,185,129,0.12)",
+      "accent": "0 0 20px rgba(16,185,129,0.35), 0 0 40px rgba(16,185,129,0.18)"
+    },
+    "opacity": {
+      "normal": 1.0,
+      "disabled": 0.5,
+      "muted": 0.7
+    },
+    "backdropBlur": "0px",
+    "glowIntensity": 0.25,
+    "gradientStops": 2,
+    "gradientAngle": "135deg",
+    "gradientsEnabled": true,
+    "shadowStyle": "medium"
+  },
+  "animation": {
+    "defaultEasing": "easeOut",
+    "enabled": true,
+    "duration": {
+      "normal": "200ms",
+      "fast": "150ms",
+      "instant": "0ms",
+      "slower": "400ms",
+      "slow": "300ms"
+    },
+    "easing": {
+      "easeInOut": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "ease": "ease",
+      "linear": "linear",
+      "easeIn": "cubic-bezier(0.4, 0, 1, 1)",
+      "bounce": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+      "easeOut": "cubic-bezier(0, 0, 0.2, 1)"
+    },
+    "defaultDuration": "normal",
+    "speed": "normal"
+  },
+  "components": {
+    "clip": {
+      "shadow": "medium",
+      "borderWidth": "thin",
+      "borderRadius": "medium",
+      "padding": "sm"
+    },
+    "track": {
+      "shadow": "small",
+      "height": "32px",
+      "borderRadius": "small",
+      "separatorWidth": "1px"
+    },
+    "panel": {
+      "shadow": "small",
+      "backdropBlur": "0px",
+      "borderRadius": "medium",
+      "padding": "md"
+    },
+    "input": {
+      "fontSize": "base",
+      "borderRadius": "medium",
+      "height": "28px",
+      "paddingX": "10px",
+      "borderWidth": "thin"
+    },
+    "card": {
+      "shadow": "medium",
+      "borderWidth": "thin",
+      "borderRadius": "large",
+      "padding": "lg"
+    },
+    "button": {
+      "shadow": "medium",
+      "height": {
+        "sm": "24px",
+        "lg": "32px",
+        "md": "28px"
+      },
+      "textTransform": "none",
+      "borderRadius": "medium",
+      "paddingX": {
+        "sm": "8px",
+        "lg": "16px",
+        "md": "12px"
+      },
+      "fontWeight": "medium",
+      "hoverTransform": "translateY(-1px)"
+    }
+  },
+  "colors": {
+    "background": {
+      "surface": "#1a2522",
+      "panel": "#2d3e37",
+      "canvas": "#0f1a17",
+      "elevated": "#23312c",
+      "highlight": "#384d44"
+    },
+    "status": {
+      "success": "#22c55e",
+      "error": "#f43f5e",
+      "warning": "#eab308",
+      "info": "#3b82f6"
+    },
+    "accent": {
+      "secondary": "#14b8a6",
+      "primary": "#10b981",
+      "tertiary": "#06b6d4"
+    },
+    "text": {
+      "secondary": "#d1fae5",
+      "muted": "#6ee7b7",
+      "primary": "#ecfdf5",
+      "tertiary": "#a7f3d0"
+    },
+    "tracks": {
+      "state": [
+        "#8b5cf6",
+        "#a78bfa"
+      ],
+      "script": [
+        "#10b981",
+        "#34d399"
+      ],
+      "receive": [
+        "#14b8a6",
+        "#2dd4bf"
+      ],
+      "media": [
+        "#22c55e",
+        "#4ade80"
+      ],
+      "send": [
+        "#06b6d4",
+        "#22d3ee"
+      ],
+      "alter": [
+        "#3b82f6",
+        "#60a5fa"
+      ]
+    }
+  },
+  "preview": "./previews/dark-mint.png",
+  "spacing": {
+    "values": {
+      "xl": "24px",
+      "3xl": "40px",
+      "md": "12px",
+      "sm": "8px",
+      "xs": "4px",
+      "2xl": "32px",
+      "lg": "16px"
+    },
+    "scale": 1.0,
+    "density": "standard",
+    "lineHeight": {
+      "normal": 1.5,
+      "relaxed": 1.75,
+      "tight": 1.25
+    },
+    "base": 8
+  },
+  "id": "dark-mint",
+  "author": "HDSI Team",
+  "version": "2.0.0",
+  "name": "Dark Mint",
+  "presets": {
+    "animationLevel": "normal",
+    "visualStyle": "gradient",
+    "densityPreset": "standard"
+  },
+  "typography": {
+    "fontSize": {
+      "xl": "18px",
+      "base": "13px",
+      "md": "14px",
+      "sm": "12px",
+      "xs": "11px",
+      "lg": "16px"
+    },
+    "fontWeight": {
+      "normal": 400,
+      "semibold": 600,
+      "medium": 500,
+      "bold": 700
+    },
+    "letterSpacing": {
+      "normal": "0",
+      "wide": "0.02em",
+      "tight": "-0.01em"
+    },
+    "fontFamily": {
+      "ui": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "display": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "mono": "JetBrains Mono, Consolas, 'Courier New', monospace"
+    }
+  },
+  "geometry": {
+    "outlineStyle": "solid",
+    "borderWidth": {
+      "normal": "1px",
+      "thick": "2px",
+      "thin": "1px"
+    },
+    "borderRadius": {
+      "none": "0px",
+      "xlarge": "16px",
+      "minimal": "2px",
+      "medium": "8px",
+      "full": "999px",
+      "large": "12px",
+      "small": "4px"
+    },
+    "style": "rounded"
+  },
+  "category": "color",
+  "colorScheme": "dark"
+}
