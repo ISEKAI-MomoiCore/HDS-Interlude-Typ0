@@ -6,6 +6,7 @@
   "main": "dist/main/main.js",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "dist": "electron-builder --win",
     "dev": "npm run build && electron .",
     "start": "electron .",
     "host": "node scripts/host.mjs",
@@ -58,6 +59,7 @@
     "@types/node": "^22.7.5",
     "@types/ws": "^8.18.1",
     "electron": "^33.0.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.24.0",
     "typescript": "^5.6.2"
   },
