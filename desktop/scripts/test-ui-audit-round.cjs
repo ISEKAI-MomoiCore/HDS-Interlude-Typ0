@@ -175,8 +175,93 @@ function pluginEntries(storyId) {
     assert.equal(readinessResult.globalStoryId, 'story-b', `全局 readiness 必须是当前剧本 B：${JSON.stringify(readinessResult)}`)
     assert.match(readinessResult.panelText, /全部就绪/, 'B 的面板应显示就绪')
 
+    // ── #5：分组同名插件——操作带 group 维度 ─────────────────────────────
+    const groupResult = await page.evaluate(async () => {
+      window.__groupCalls = []
+      window.hdsiDesktop.stories.plugins = async () => ({ entries: [
+        { rawKey: 'foo', key: 'foo', group: 'first', packageName: 'koishi-plugin-foo', enabled: true, installed: '1', official: false, risk: 'normal', configText: '', lineStart: 1 },
+        { rawKey: 'foo', key: 'foo', group: 'second', packageName: 'koishi-plugin-foo', enabled: true, installed: '1', official: false, risk: 'normal', configText: '', lineStart: 2 },
+      ], warnings: [] })
+      window.hdsiDesktop.stories.pluginToggle = async (_id, rawKey, enable, group) => { window.__groupCalls.push(['toggle', rawKey, enable, group]); return {} }
+      window.hdsiDesktop.stories.pluginConfig = async (_id, rawKey, _fragment, group) => { window.__groupCalls.push(['config', rawKey, group]); return {} }
+      await renderPluginsPanel('fixture')
+      await new Promise(r => setTimeout(r, 200))
+      const cards = [...document.querySelectorAll('#cfg-plugins-list .cfg-card')]
+      cards[1].querySelector('.cfg-toggle-mini')?.click()
+      await new Promise(r => setTimeout(r, 200))
+      return { calls: window.__groupCalls, cardCount: cards.length, groups: cards.map(card => card.dataset.group) }
+    })
+    assert.equal(groupResult.cardCount, 2, '同名键两分组应渲染两张卡')
+    assert.deepEqual(groupResult.groups, ['first', 'second'])
+    assert.deepEqual(groupResult.calls[0], ['toggle', 'foo', false, 'second'], `第二张卡（second 分组）的停用必须带 group：${JSON.stringify(groupResult.calls)}`)
+
+    // ── #1：双编辑器过期守卫 ─────────────────────────────────────────────
+    const staleness = await page.evaluate(async () => {
+      const confirms = []
+      const writes = []
+      const originalConfirm = window.confirm
+      window.__yamlFile = 'plugins:\n  hds-interlude:m0:\n    storyDefaults:\n      characterName: 原名\n'
+      window.__sections = { storyDefaults: { characterName: '原名' }, userAccounts: [], groupChats: [], botAccounts: [], providers: [] }
+      window.hdsiDesktop.stories.config = async () => window.__yamlFile
+      window.hdsiDesktop.stories.configSection = async (_id, section, data) => {
+        if (data === undefined) return window.__sections[section] ?? null
+        writes.push([section, JSON.parse(JSON.stringify(data))])
+        window.__sections[section] = data
+        return { needsReload: false }
+      }
+      window.hdsiDesktop.stories.saveConfig = async (_id, source) => { writes.push(['yaml', source]); window.__yamlFile = source; return { needsReload: false } }
+      window.confirm = message => { confirms.push(String(message)); return window.__confirmReturn ?? true }
+
+      // (a) YAML 副本过期：打开后后端被改（模拟节保存/插件操作）→ YAML 保存必须拦截
+      await openConfig('fixture')
+      await new Promise(r => setTimeout(r, 250))
+      window.__yamlFile = window.__yamlFile.replace('原名', '后端已改')   // canonical 变化
+      document.querySelector('[data-config-tab="yaml"]')?.click()
+      await new Promise(r => setTimeout(r, 100))
+      byId('config-save').click()
+      await new Promise(r => setTimeout(r, 250))
+      const yamlBlocked = confirms.some(m => m.includes('整体覆盖'))
+      const yamlWriteCount = writes.filter(w => w[0] === 'yaml').length
+
+      // (b) 二次保存不再弹（loadedSource 已随上次成功保存刷新）
+      confirms.length = 0
+      byId('config-save').click()
+      await new Promise(r => setTimeout(r, 250))
+      const secondSaveConfirmFree = confirms.length === 0
+
+      // (c) 节保存过期：YAML 保存后表单基线过期 → 节保存必须拦截
+      confirms.length = 0
+      window.__confirmReturn = false   // 拒绝 → 不得写入
+      await saveConfigSection('fixture', 'storyDefaults')
+      const sectionBlockedAndRefused = confirms.some(m => m.includes('在后端已被修改')) && writes.filter(w => w[0] === 'storyDefaults').length === 0
+      window.__confirmReturn = true    // 同意 → 写入旧表单值（用户明示覆盖）
+      await saveConfigSection('fixture', 'storyDefaults')
+      const sectionWrittenAfterConsent = writes.some(w => w[0] === 'storyDefaults')
+
+      window.confirm = originalConfirm
+      return { yamlBlocked, yamlWriteCount, secondSaveConfirmFree, sectionBlockedAndRefused, sectionWrittenAfterConsent }
+    })
+    assert.equal(staleness.yamlBlocked, true, 'YAML 副本过期时保存必须弹出覆盖确认')
+    assert.equal(staleness.yamlWriteCount, 1, '确认后 YAML 才写一次')
+    assert.equal(staleness.secondSaveConfirmFree, true, '保存成功后 loadedSource 刷新，二次保存不再误报')
+    assert.equal(staleness.sectionBlockedAndRefused, true, '节基线过期：拒绝时不得写入')
+    assert.equal(staleness.sectionWrittenAfterConsent, true, '节基线过期：同意后可写入')
+
+    // ── #7：动作参数契约（标量 / 对象两形态）─────────────────────────────
+    const contract = await page.evaluate(async () => {
+      const calls = []
+      window.hdsiDesktop.stories.setPhase = async (id, phase) => { calls.push(['setPhase', id, phase]); return {} }
+      const r1 = await window.HDSIActions.dispatch('story.setPhase', 'paused')
+      const r2 = await window.HDSIActions.dispatch('story.setPhase', { phase: 'muted' })
+      const r3 = await window.HDSIActions.dispatch('story.select', { storyId: 'fixture' })
+      return { calls, ok: [r1?.ok, r2?.ok, r3?.ok] }
+    })
+    assert.deepEqual(contract.ok, [true, true, true], `两形态都必须成功：${JSON.stringify(contract)}`)
+    assert.equal(contract.calls[0][2], 'paused', '标量形态直传')
+    assert.equal(contract.calls[1][2], 'muted', '对象形态 {phase} 必须解包')
+
     assert.deepEqual(errors, [], `页面错误：${errors.join(' | ')}`)
-    console.log('test-ui-audit-round: PASS（包名四路 / 面板竞态 / 市场快照 / readiness 守卫 ×4）')
+    console.log('test-ui-audit-round: PASS（包名/竞态/快照/readiness/分组/过期守卫/契约 ×7）')
   } finally {
     await browser.close()
   }

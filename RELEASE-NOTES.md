@@ -9,6 +9,7 @@
 - **剧本数据库整库导入**：向导新增「剧本数据库」模块——按 yml 内 `database-sqlite` 路径探测插件版 koishi.db，文件级替换为新剧本的 `data/hdsi.db`（两边同为 rc57 插件 schema，无需转译；db+wal+shm 三件套随迁，AUTOINCREMENT 与行 id 保真）。预览仅显示表级计数；库内 story 账号与导入账号不一致时给警告；analytics 等无关表原样保留。
 - **应用图标 ☕**：基于 Twemoji 2615（CC-BY 4.0，README 署名），窗口/任务栏/安装包统一（`desktop/scripts/make-icon.cjs` 再生成）。
 - **可用性修复批（2026-10-19 五联修）**：就绪检查 needs-reload 提供「重载 Worker」（真正 unload→load，不再对运行中 worker 做幂等 no-op 假装修复）；新增「运行相位」检查（暂停/静音 warn + 一键切回运行）；`window.prompt` 全量替换为宿主输入对话框（Electron 渲染层不渲染原生 prompt，此前删除剧本/创建分支/自定义时间范围/导入剧本目录五个流程静默失效）；NOW 播放头几何改为 ResizeObserver 重测（HUD↔Timeline 切换后不再出现半截竖线）；账号卡网格 `min-width:0` 稳定化（长 endpoint URL 不再把轨道撑爆、缩放不再乱跳）。
+- **审计批修复（2026-10-20）**：插件更新/卸载/复制/安装的包名双拼（完整名原样、裸短名才拼前缀）；插件面板与市场安装的三处跨剧本竞态（面板级序号 / 安装目标快照）；同名插件分组定位（块级 (rawKey, group) 定位，IPC 增加可选 group 参数）；配置双编辑器保存前过期守卫（YAML 副本对比来源快照、结构化节对比基线，过期即确认，不再静默回滚已保存修改）；就绪检查迟到响应不再污染状态栏；声明式 Button 的 args 契约统一（对象解包 + 标量直传，内置动作两形态兼容）。
 - **界面细节**：诊断日志等级筛选改为普通单选下拉（全部/仅 debug/info 及以上/warn 及以上/仅 error，选中即生效）；时间尺度旋钮拖拽方向修正为旋钮惯例（上拉顺时针=范围增大）；连接页/配置页多处滚动截断修复。
 - **仓库化**：插件 tgz 入 `desktop/vendor/`（哈希不变，见 `PROVENANCE.md`）；AGPL-3.0 LICENSE；文档归档 `docs/design/` 与 `docs/history/`；版本统一 `0.0.1-m4`。
 - **rc57 同步**（2026-10-18）：Mixer「费用优先」预设重标定到 rc57 默认基线；`model.specializationAutoTrim` 开关接入；Console 配置面重排自动生效（详见 `PROVENANCE.md` m4/rc57 说明）。

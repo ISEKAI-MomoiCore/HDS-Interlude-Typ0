@@ -54,9 +54,25 @@ let configSaving = false
 let configDirtyPanels = new Set()
 let configYamlBaseline = ''
 let configSectionsBaseline = ''
+// 审计批#1：YAML 编辑器副本的来源全文。结构化节保存/插件操作/YAML 保存都会
+// 改写 canonical，但只有 YAML 保存会刷新编辑器内容——副本从此可能过期，而
+// 脏标记检测不到（相对"自己的旧基线"永远干净）。保存前用该快照判定过期。
+let configYamlLoadedSource = ''
 const CONFIG_PANEL_LABELS = { story: '人设与故事', users: '用户白名单', groups: '群聊管理', bots: '机器人', providers: '模型提供商', yaml: 'YAML' }
 /** 标签页 → 配置节。secrets/plugins 有各自的保存入口，不在此表。 */
 const CONFIG_PANEL_SECTIONS = { story: 'storyDefaults', users: 'userAccounts', groups: 'groupChats', bots: 'botAccounts', providers: 'providers' }
+
+/** 稳定 JSON（键排序递归）：节基线与后端读回的比对必须与键序无关。 */
+function stableConfigJson(value) {
+  const sortDeep = input => {
+    if (Array.isArray(input)) return input.map(sortDeep)
+    if (input && typeof input === 'object') {
+      return Object.fromEntries(Object.keys(input).sort().map(key => [key, sortDeep(input[key])]))
+    }
+    return input
+  }
+  return JSON.stringify(sortDeep(value ?? null))
+}
 
 /** 序列化当前结构化草稿（与 saveConfigSections 同源，只读不写）。 */
 function serializeConfigSections() {
@@ -3222,6 +3238,7 @@ async function openConfig(storyId) {
     configDirtyPanels = new Set()
     byId('config-source').value = result.source
     configYamlBaseline = result.source
+    configYamlLoadedSource = result.source
     byId('config-title').textContent = `剧本配置 · ${storyId}`
     byId('config-status').textContent = ''
     renderAliases(result.aliases)
@@ -3463,7 +3480,7 @@ async function renderPluginsPanel(storyId, seq) {
   const riskBadge = entry => entry.risk === 'high' ? '<span class="chip warn">⚠ 与 HDSI 冲突高风险</span>' : ''
   const officialBadge = entry => entry.official ? '<span class="chip">官方</span>' : ''
   const cardHtml = entry => `
-    <div class="cfg-card" data-raw-key="${escapeHtml(entry.rawKey)}">
+    <div class="cfg-card" data-raw-key="${escapeHtml(entry.rawKey)}" data-group="${escapeHtml(entry.group ?? '')}">
       <div class="cfg-card-header">
         <button type="button" class="cfg-toggle-mini ${entry.enabled ? 'on' : ''}" data-plugin-toggle role="switch" aria-checked="${Boolean(entry.enabled)}" aria-label="启用插件 ${escapeHtml(entry.packageName)}" title="${entry.enabled ? '立即停用，配置保留' : '立即启用'}">启用插件</button>
         <b>${escapeHtml(entry.packageName)}</b>
@@ -3496,15 +3513,19 @@ async function renderPluginsPanel(storyId, seq) {
   }
   for (const card of list.querySelectorAll('.cfg-card')) {
     const rawKey = card.dataset.rawKey || ''
-    const entry = entries.find(item => item.rawKey === rawKey)
+    // 审计批#5：同名实例键可在不同分组共存——定位必须带分组维度，否则
+    // 每张卡片都会 find 到第一个同名条目、操作落在错误实例上。
+    const group = card.dataset.group || null
+    const entry = entries.find(item => item.rawKey === rawKey && (item.group ?? '') === (group ?? ''))
+    const groupNote = group ? `（分组 ${group}）` : ''
     card.querySelector('.cfg-toggle-mini')?.addEventListener('click', async () => {
       const toggleEl = card.querySelector('.cfg-toggle-mini')
       const enable = !toggleEl.classList.contains('on')
       if (enable && entry?.risk === 'high' && !window.confirm('「' + entry.packageName + '」是适配器/数据库类插件，会与 HDSI 的 OneBot 桥接或 SQLite 存储正面冲突（selfId 争抢/事件流/多驱动约束），很可能导致 worker 启动失败或消息异常。' + '\n' + '确定要启用吗？')) return
-      await act(() => desktop.stories.pluginToggle(storyId, rawKey, enable), (enable ? '启用' : '停用') + '插件 ' + rawKey)
+      await act(() => desktop.stories.pluginToggle(storyId, rawKey, enable, group), (enable ? '启用' : '停用') + '插件 ' + rawKey + groupNote)
     })
     card.querySelector('.plugin-config-save')?.addEventListener('click', async () => {
-      await act(() => desktop.stories.pluginConfig(storyId, rawKey, card.querySelector('.plugin-config-editor').value), '更新插件配置 ' + rawKey)
+      await act(() => desktop.stories.pluginConfig(storyId, rawKey, card.querySelector('.plugin-config-editor').value, group), '更新插件配置 ' + rawKey + groupNote)
     })
     card.querySelector('.plugin-install-copy')?.addEventListener('click', event => {
       const pkg = pluginPkgOf(entry)
@@ -3560,7 +3581,7 @@ async function renderPluginsPanel(storyId, seq) {
     })
     card.querySelector('.cfg-del')?.addEventListener('click', event => {
       const btn = event.currentTarget
-      if (btn.dataset.arm === '1') { void act(() => desktop.stories.pluginRemove(storyId, rawKey), '移除插件 ' + rawKey) }
+      if (btn.dataset.arm === '1') { void act(() => desktop.stories.pluginRemove(storyId, rawKey, group), '移除插件 ' + rawKey + groupNote) }
       else { btn.dataset.arm = '1'; btn.textContent = '确认删?'; setTimeout(() => { btn.dataset.arm = ''; btn.textContent = '删' }, 2500) }
     })
     card.querySelector('.cfg-expand-toggle')?.addEventListener('click', () => {
@@ -3786,6 +3807,19 @@ async function saveConfigSection(storyId, section) {
   const label = CONFIG_PANEL_LABELS[panelId] ?? section
   try {
     const payload = serializeConfigSections()[section] ?? null
+    // 审计批#1：节保存是整节替换。若该节在后端已被 YAML 保存/插件操作改写
+    //（表单 DOM 还是旧数据），本次保存会静默回滚那些修改——保存前读当前节
+    // 与基线比对，过期即要求确认。未保存草稿不受影响（比对的是基线而非 DOM）。
+    try {
+      const currentSection = await desktop.stories.configSection(storyId, section)
+      const baseline = JSON.parse(configSectionsBaseline || '{}')
+      if (stableConfigJson(baseline[section]) !== stableConfigJson(currentSection)) {
+        if (!window.confirm(`「${label}」在后端已被修改（YAML 保存或插件操作）。\n当前表单基于旧数据，本次保存将覆盖那些修改。继续？`)) {
+          if (status) status.textContent = `已取消保存「${label}」——建议切换到 YAML 标签页核对后再保存。`
+          return
+        }
+      }
+    } catch { /* 读取失败不阻断保存（保持旧行为） */ }
     const result = await desktop.stories.configSection(storyId, section, payload)
     if (result?.needsReload) needsReloadStoryIds.add(storyId)
     else needsReloadStoryIds.delete(storyId)
@@ -5207,11 +5241,23 @@ byId('config-save')?.addEventListener('click',async event=>{
     if(onYaml&&configSectionsDirty&&!window.confirm('当前在 YAML 标签页：本次只保存 YAML 原文，其它标签页的未保存修改不会被保存。继续？'))return
     if(!onYaml&&configYamlDirty&&!window.confirm('当前在结构化标签页：本次只保存当前分区，YAML 标签页的手工修改不会被保存。继续？'))return
     if(onYaml){
+      // 审计批#1：YAML 副本只在打开时加载一次——结构化节保存/插件操作之后，
+      // 编辑器里的整份 YAML 已过期（脏标记测不到：它只对比"自己的旧基线"）。
+      // 保存前读当前 canonical 比对来源快照，过期即要求确认，否则会把那些
+      // 已保存的修改静默回滚。
+      try {
+        const currentSource = await desktop.stories.config(configuredStoryId)
+        if (currentSource !== configYamlLoadedSource
+          && !window.confirm('YAML 编辑器的内容基于旧版本：结构化表单或插件操作在此之后已保存过修改。\n本次保存将用编辑器内容整体覆盖那些修改。继续？')) {
+          byId('config-status').textContent = '已取消保存——建议重新打开配置窗口获取最新 YAML 后再编辑。'
+          return
+        }
+      } catch { /* 读取失败不阻断保存（保持旧行为） */ }
       const result = await desktop.stories.saveConfig(configuredStoryId,byId('config-source').value)
       if (result?.needsReload) needsReloadStoryIds.add(configuredStoryId)
       else needsReloadStoryIds.delete(configuredStoryId)
       configYamlDirty=false
-      configDirtyPanels.delete('yaml'); configYamlBaseline=byId('config-source').value; configDraftSummary()
+      configDirtyPanels.delete('yaml'); configYamlBaseline=byId('config-source').value; configYamlLoadedSource=byId('config-source').value; configDraftSummary()
       byId('config-status').textContent = result?.needsReload
         ? 'YAML 配置已保存；Worker 仍使用旧配置，请到连接页确认“重载 Worker”。'
         : 'YAML 配置已保存；下次加载 Worker 时生效。'
@@ -6106,17 +6152,24 @@ if (window.HDSIViewModel) {
 if (window.HDSIActions) {
   window.HDSIActions.register('story.select', {
     label: '切换故事',
-    handler: async id => { selectStory(id); window.HDSIViewModel?.notify('app') },
+    handler: async arg => {
+      // 审计批#7：Action Registry 的 args 契约统一兼容两形态——标量（内置
+      // 调用方，如 data-phase 按钮）与声明式 Button 的对象（DSL 层只会把对象
+      // args 整体传入）。此前对象形态直穿导致 setPhase({phase}) 之类必败。
+      const id = typeof arg === 'string' ? arg : (arg?.storyId ?? arg?.id)
+      selectStory(id); window.HDSIViewModel?.notify('app')
+    },
   })
   window.HDSIActions.register('story.setPhase', {
     label: '切换运行状态',
-    handler: async phase => {
+    handler: async arg => {
+      const phase = typeof arg === 'string' ? arg : arg?.phase
       const story = selectedStory(); if (!story) return false
       try { await desktop.stories.setPhase(story.meta.id, phase); await refresh() } catch (error) { appendLog({ storyId: story.meta.id, line: `切换状态失败：${error}` }); throw error }
     },
   })
   window.HDSIActions.register('timeline.refresh', { label: '刷新时间线', handler: async () => { await refresh(); window.HDSIViewModel?.notify('app') } })
-  window.HDSIActions.register('config.open', { label: '打开配置', handler: async storyId => { openConfig(storyId || state.storyId) } })
+  window.HDSIActions.register('config.open', { label: '打开配置', handler: async arg => { const storyId = typeof arg === 'string' ? arg : (arg?.storyId ?? arg?.id); openConfig(storyId || state.storyId) } })
 }
 
 

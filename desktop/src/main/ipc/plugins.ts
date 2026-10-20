@@ -88,18 +88,22 @@ export function registerPluginsIpc(ctx: IpcContext) {
     if (!handle) throw new Error('剧本不存在。')
     return readPluginPanel(config.read(handle.dir), pluginProbe)
   })
-  registerHandle('stories:pluginToggle', (_event, metaId: string, rawKey: unknown, enable: unknown) => {
+  // 审计批#5：group 参数区分不同分组下的同名实例键（块级定位见 plugin-panel.ts）
+  const groupArg = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim().slice(0, 64) : null
+  registerHandle('stories:pluginToggle', (_event, metaId: string, rawKey: unknown, enable: unknown, group: unknown) => {
     const handle = stories.get(String(metaId || ''))
     if (!handle) throw new Error('剧本不存在。')
-    const next = togglePlugin(config.read(handle.dir), String(rawKey || ''), enable === true)
-    return saveCanonical(String(metaId), next, `${enable === true ? '启用' : '停用'}插件 ${String(rawKey)}`)
+    const groupLabel = groupArg(group)
+    const next = togglePlugin(config.read(handle.dir), String(rawKey || ''), enable === true, groupLabel)
+    return saveCanonical(String(metaId), next, `${enable === true ? '启用' : '停用'}插件 ${String(rawKey)}${groupLabel ? `（分组 ${groupLabel}）` : ''}`)
   })
-  registerHandle('stories:pluginConfig', (_event, metaId: string, rawKey: unknown, fragment: unknown) => {
+  registerHandle('stories:pluginConfig', (_event, metaId: string, rawKey: unknown, fragment: unknown, group: unknown) => {
     const handle = stories.get(String(metaId || ''))
     if (!handle) throw new Error('剧本不存在。')
     if (typeof fragment !== 'string') throw new Error('配置片段必须是字符串。')
-    const next = writePluginConfig(config.read(handle.dir), String(rawKey || ''), fragment)
-    return saveCanonical(String(metaId), next, `更新插件配置 ${String(rawKey)}`)
+    const groupLabel = groupArg(group)
+    const next = writePluginConfig(config.read(handle.dir), String(rawKey || ''), fragment, groupLabel)
+    return saveCanonical(String(metaId), next, `更新插件配置 ${String(rawKey)}${groupLabel ? `（分组 ${groupLabel}）` : ''}`)
   })
   registerHandle('stories:pluginAdd', (_event, metaId: string, packageName: unknown) => {
     const handle = stories.get(String(metaId || ''))
@@ -108,11 +112,12 @@ export function registerPluginsIpc(ctx: IpcContext) {
     const next = appendPlugin(config.read(handle.dir), name)
     return saveCanonical(String(metaId), next, `添加插件 ${name}（默认启用）`)
   })
-  registerHandle('stories:pluginRemove', (_event, metaId: string, rawKey: unknown) => {
+  registerHandle('stories:pluginRemove', (_event, metaId: string, rawKey: unknown, group: unknown) => {
     const handle = stories.get(String(metaId || ''))
     if (!handle) throw new Error('剧本不存在。')
-    const next = removePlugin(config.read(handle.dir), String(rawKey || ''))
-    return saveCanonical(String(metaId), next, `移除插件 ${String(rawKey)}`)
+    const groupLabel = groupArg(group)
+    const next = removePlugin(config.read(handle.dir), String(rawKey || ''), groupLabel)
+    return saveCanonical(String(metaId), next, `移除插件 ${String(rawKey)}${groupLabel ? `（分组 ${groupLabel}）` : ''}`)
   })
   registerHandle('stories:configSection', (_event, metaId: string, section: string, data?: unknown) => {
     const handle = stories.get(String(metaId || ''))

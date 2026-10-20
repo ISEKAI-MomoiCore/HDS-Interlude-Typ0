@@ -337,9 +337,13 @@
       button.textContent = String(props.label ?? '')
       if (props.action) {
         button.addEventListener('click', async () => {
-          const args = typeof props.args === 'object' && props.args
-            ? Object.fromEntries(Object.entries(props.args).map(([key, value]) => [key, resolveProp(value, ctx)]))
-            : undefined
+          // args 契约（审计批#7）：对象 → 逐键解析（$vm/$item 引用）后传对象；
+          // 字符串/数字 → 原样解析直传（此前只处理对象，标量 args 会变成
+          // undefined，内置标量动作全部失败）。undefined/null → 不传。
+          const args = props.args === undefined || props.args === null ? undefined
+            : typeof props.args === 'object'
+              ? Object.fromEntries(Object.entries(props.args).map(([key, value]) => [key, resolveProp(value, ctx)]))
+              : resolveProp(props.args, ctx)
           await ctx?.actions?.dispatch(String(props.action), args)
         })
       }
