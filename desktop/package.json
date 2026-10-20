@@ -37,6 +37,7 @@
     "test:ui-providers": "node scripts/test-ui-providers.cjs",
     "test:importer": "node scripts/test-importer.mjs",
     "test:ui-bugfix-round": "node scripts/test-ui-bugfix-round.cjs",
+    "test:ui-audit": "node scripts/test-ui-audit-round.cjs",
     "test:ui-import": "node scripts/test-ui-import.cjs"
   },
   "dependencies": {

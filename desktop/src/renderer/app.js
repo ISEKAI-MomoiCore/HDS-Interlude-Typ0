@@ -1138,9 +1138,12 @@ async function renderReadyPanel() {
   }
   panel.innerHTML = `<div class="ready-panel"><h3>就绪检查</h3><p class="muted-copy" style="font-size:11px">正在检查…</p></div>`
   // 连接页的就绪面板是用户主动查看：强制穿透 TTL 缓存取新鲜数据（同时回填缓存）。
-  connectState.readiness = await fetchReadiness(story.meta.id, { force: true })
+  const data = await fetchReadiness(story.meta.id, { force: true })
   if (renderSeq !== readyPanelSeq || selectedStory()?.meta.id !== story.meta.id) return
-  const rc = connectState.readiness
+  // 审计批#6：全局 readiness 必须在守卫之后落值——A 的迟到响应若先写全局，
+  // 状态栏（读 connectState.readiness）会与 B 的右面板互相矛盾。
+  connectState.readiness = data
+  const rc = data
   if (!rc || rc.error) {
     panel.innerHTML = `<div class="ready-panel"><h3>就绪检查</h3><p class="muted-copy" style="font-size:11px">无法执行检查：${escapeHtml(rc?.error ?? '连接失败')}</p></div>`
     return
@@ -3414,15 +3417,33 @@ function renderStoryDefaultsForm(data) {
 // ── 第三方 Koishi 插件面板（Phase 1）：即时写回（不经草稿/保存全部）──
 // 启停 = 实例键 ~ 前缀（Koishi loader 官方约定，配置保留）；配置 = YAML 片段
 // 原文（敏感字段须 $secret:别名）；安装探测 = desktop 运行时解析（官方域优先）。
+/** 插件条目 → npm 包名。packageName 可能是裸短名（foo）也可能是完整名
+ *  （koishi-plugin-foo / @scope/x / @koishijs/plugin-x——配置键写完整包名时
+ *  panel 即返回全名）。再无条件拼前缀会得到 koishi-plugin-koishi-plugin-foo
+ *  这类废包名：完整名原样使用，裸短名才拼候选前缀（与主进程 packageCandidates
+ *  的官方域优先语义一致）。 */
+function pluginPkgOf(entry) {
+  const name = String(entry?.packageName || '')
+  if (!name) return ''
+  if (name.startsWith('@') || name.startsWith('koishi-plugin-')) return name
+  return (entry?.official ? '@koishijs/plugin-' : 'koishi-plugin-') + name
+}
+
+let pluginsPanelSeq = 0
 async function renderPluginsPanel(storyId, seq) {
   const list = byId('cfg-plugins-list')
   if (!list) return
+  // 审计批#3：操作后刷新（act/安装/市场流）不带 configLoadSeq——旧剧本的
+  // 迟到响应会把当前面板换成别的剧本清单，按钮闭包仍指旧 storyId。面板级
+  // 序号让"任何更新的调用"使在途旧渲染整体失效（末位调用者胜出）。
+  const panelSeq = ++pluginsPanelSeq
   let data
   try { data = await desktop.stories.plugins(storyId) }
   catch (error) {
-    if (seq === undefined || seq === configLoadSeq) list.innerHTML = '<p class="muted">插件清单读取失败：' + escapeHtml(String(error)) + '</p>'
+    if (panelSeq === pluginsPanelSeq && (seq === undefined || seq === configLoadSeq)) list.innerHTML = '<p class="muted">插件清单读取失败：' + escapeHtml(String(error)) + '</p>'
     return
   }
+  if (panelSeq !== pluginsPanelSeq) return
   if (seq !== undefined && seq !== configLoadSeq) return
   const entries = Array.isArray(data?.entries) ? data.entries : []
   const warnings = Array.isArray(data?.warnings) ? data.warnings : []
@@ -3486,8 +3507,7 @@ async function renderPluginsPanel(storyId, seq) {
       await act(() => desktop.stories.pluginConfig(storyId, rawKey, card.querySelector('.plugin-config-editor').value), '更新插件配置 ' + rawKey)
     })
     card.querySelector('.plugin-install-copy')?.addEventListener('click', event => {
-      const name = entry?.packageName || ''
-      const pkg = entry?.official ? '@koishijs/plugin-' + name : 'koishi-plugin-' + name
+      const pkg = pluginPkgOf(entry)
       const command = 'npm install ' + pkg + ' --save --legacy-peer-deps --ignore-scripts'
       void navigator.clipboard?.writeText(command).then(() => { event.target.textContent = '已复制'; showToast('已复制：' + command) }, () => showToast(command))
     })
@@ -3496,13 +3516,15 @@ async function renderPluginsPanel(storyId, seq) {
     card.querySelector('.plugin-install-btn')?.addEventListener('click', async event => {
       const btn = event.currentTarget
       const name = entry?.packageName || ''
-      if (!name) return
-      if (!window.confirm('安装「' + (name.startsWith('@') ? name : 'koishi-plugin-' + name) + '」到 typ0 插件运行时目录？' + '\n' + '来源 registry.npmmirror.com；--ignore-scripts（不执行第三方安装脚本，原生依赖类插件不可用）；--legacy-peer-deps（不复制 koishi，宿主同实例）。安装进度见日志。')) return
+      const pkg = pluginPkgOf(entry)
+      if (!name || !pkg) return
+      if (!window.confirm('安装「' + pkg + '」到 typ0 插件运行时目录？' + '\n' + '来源 registry.npmmirror.com；--ignore-scripts（不执行第三方安装脚本，原生依赖类插件不可用）；--legacy-peer-deps（不复制 koishi，宿主同实例）。安装进度见日志。')) return
       btn.disabled = true; btn.textContent = '安装中…'
       try {
-        try { await desktop.stories.pluginInstall(name.startsWith('@') ? name : 'koishi-plugin-' + name) }
+        try { await desktop.stories.pluginInstall(pkg) }
         catch (firstError) {
-          if (name.startsWith('@')) throw firstError
+          // 完整名失败不重试；裸短名社区包失败再试官方 @koishijs 域
+          if (pkg.startsWith('@') || pkg.startsWith('koishi-plugin-')) throw firstError
           try { await desktop.stories.pluginInstall('@koishijs/plugin-' + name) }
           catch { throw firstError }
         }
@@ -3513,10 +3535,10 @@ async function renderPluginsPanel(storyId, seq) {
     card.querySelector('.plugin-update-btn')?.addEventListener('click', async event => {
       const btn = event.currentTarget
       const name = entry?.packageName || ''
-      if (!name) return
+      const pkg = pluginPkgOf(entry)
+      if (!name || !pkg) return
       btn.disabled = true; btn.textContent = '更新中…'
       try {
-        const pkg = entry?.official ? '@koishijs/plugin-' + name : 'koishi-plugin-' + name
         const result = await desktop.stories.pluginUpdate(pkg)
         showToast('已更新 ' + name + '（v' + (result?.version ?? '?') + '）', 'success')
         void renderPluginsPanel(storyId)
@@ -3525,11 +3547,11 @@ async function renderPluginsPanel(storyId, seq) {
     card.querySelector('.plugin-uninstall-btn')?.addEventListener('click', async event => {
       const btn = event.currentTarget
       const name = entry?.packageName || ''
-      if (!name) return
+      const pkg = pluginPkgOf(entry)
+      if (!name || !pkg) return
       if (btn.dataset.arm === '1') {
         btn.disabled = true; btn.textContent = '卸载中…'
         try {
-          const pkg = entry?.official ? '@koishijs/plugin-' + name : 'koishi-plugin-' + name
           await desktop.stories.pluginUninstall(pkg)
           showToast('已卸载 ' + name, 'success')
           void renderPluginsPanel(storyId)
@@ -5357,19 +5379,23 @@ function bindConfigDialogButtons() {
         })
         row?.querySelector('.plugin-market-install')?.addEventListener('click', async event => {
           const btn = event.currentTarget
-          if (!configuredStoryId) return
+          // 审计批#4：pluginInstall 可能耗时很久——期间用户可能关掉 A 的配置
+          // 窗口打开 B（configuredStoryId 被覆写）。目标剧本在点击时快照，
+          // 安装完成后写快照而非实时全局。
+          const targetStoryId = configuredStoryId
+          if (!targetStoryId) return
           const shortName = entry.pluginName || entry.packageName
           const risky = /^(koishi-plugin-)?(adapter|database)/.test(entry.packageName)
           if (!window.confirm('安装并添加「' + entry.packageName + '」？' + String.fromCharCode(10) + String.fromCharCode(10) + '来源 npmmirror；--ignore-scripts（不执行第三方安装脚本）；安装后写入 plugins 段并需重载 worker。' + (risky ? String.fromCharCode(10) + '⚠ 该插件属于适配器/数据库类，与 HDSI 的桥接或存储正面冲突，可能导致 worker 启动失败。' : ''))) return
           btn.disabled = true; btn.textContent = '安装中…'
           try {
             await desktop.stories.pluginInstall(entry.packageName)
-            const result = await desktop.stories.pluginAdd(configuredStoryId, shortName)
-            if (result?.needsReload) needsReloadStoryIds.add(configuredStoryId)
-            appendLog({ storyId: configuredStoryId, line: '[plugins] 市场安装 ' + entry.packageName + ' 并添加到剧本（重载后生效）。' })
+            const result = await desktop.stories.pluginAdd(targetStoryId, shortName)
+            if (result?.needsReload) needsReloadStoryIds.add(targetStoryId)
+            appendLog({ storyId: targetStoryId, line: '[plugins] 市场安装 ' + entry.packageName + ' 并添加到剧本（重载后生效）。' })
             btn.textContent = '已安装'
             showToast('已安装并添加 ' + entry.packageName + '，重载 worker 后生效', 'success')
-            void renderPluginsPanel(configuredStoryId)
+            void renderPluginsPanel(targetStoryId)
           } catch (error) { showToast('安装失败：' + String(error), 'error'); btn.disabled = false; btn.textContent = '安装并添加' }
         })
       })
