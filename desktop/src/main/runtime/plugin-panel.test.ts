@@ -65,3 +65,37 @@ test('旧调用形态兼容：无 group 参数保持既有行为（first-match �
   const panel = readPluginPanel(next, probe)
   assert.equal(panel.entries.find(entry => entry.key === 'foo' && entry.group === 'first')?.enabled, false)
 })
+
+const WITHOUT_SECOND = [
+  'plugins:',
+  '  group:first:',
+  '    foo:',
+  '      tag: first',
+  '  top:',
+  '    tag: top',
+  '',
+].join('\n')
+
+const WITHOUT_TOP = [
+  'plugins:',
+  '  group:first:',
+  '    foo:',
+  '      tag: first',
+  '  group:second:',
+  '    foo:',
+  '      tag: second',
+  '',
+].join('\n')
+
+test('边界：显式 group 未命中且异处有同名键 → 必须报错，不得模糊命中', () => {
+  assert.throws(() => togglePlugin(WITHOUT_SECOND, 'foo', false, 'second'), /未找到插件 foo（分组 second）/)
+  assert.throws(() => removePlugin(WITHOUT_SECOND, 'foo', 'second'), /未找到插件 foo（分组 second）/)
+  assert.throws(() => writePluginConfig(WITHOUT_SECOND, 'foo', '      x: 1', 'second'), /未找到插件 foo（分组 second）/)
+  // first 分组的同名键必须原样保留（未发生任何误改写）
+  const panel = readPluginPanel(WITHOUT_SECOND, probe)
+  assert.equal(panel.entries.find(entry => entry.key === 'foo' && entry.group === 'first')?.enabled, true)
+})
+
+test('边界：显式 null（顶层）未命中而同名键在分组内 → 同样报错', () => {
+  assert.throws(() => togglePlugin(WITHOUT_TOP, 'top', false, null), /未找到插件 top/)
+})

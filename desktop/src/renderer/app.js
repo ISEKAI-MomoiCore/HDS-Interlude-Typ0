@@ -3819,7 +3819,14 @@ async function saveConfigSection(storyId, section) {
           return
         }
       }
-    } catch { /* 读取失败不阻断保存（保持旧行为） */ }
+    } catch (readError) {
+      // 审计批边界（P2）：核对读取失败不能静默放行——否则检查本身失效恰好
+      // 绕过保护。折中：明示风险并要求确认，拒绝则跳过本节保存。
+      if (!window.confirm(`无法核对「${label}」的最新内容（读取失败：${readError instanceof Error ? readError.message : String(readError)}）。\n本次保存可能覆盖其它已保存的修改。继续？`)) {
+        if (status) status.textContent = `已取消保存「${label}」——无法核对配置是否过期。`
+        return
+      }
+    }
     const result = await desktop.stories.configSection(storyId, section, payload)
     if (result?.needsReload) needsReloadStoryIds.add(storyId)
     else needsReloadStoryIds.delete(storyId)
@@ -5252,7 +5259,13 @@ byId('config-save')?.addEventListener('click',async event=>{
           byId('config-status').textContent = '已取消保存——建议重新打开配置窗口获取最新 YAML 后再编辑。'
           return
         }
-      } catch { /* 读取失败不阻断保存（保持旧行为） */ }
+      } catch (readError) {
+        // 审计批边界（P2）：核对读取失败不能静默放行——折中为明示确认。
+        if (!window.confirm(`无法核对最新 YAML（读取失败：${readError instanceof Error ? readError.message : String(readError)}）。\n本次保存可能覆盖其它已保存的修改。继续？`)) {
+          byId('config-status').textContent = '已取消保存——无法核对配置是否过期。'
+          return
+        }
+      }
       const result = await desktop.stories.saveConfig(configuredStoryId,byId('config-source').value)
       if (result?.needsReload) needsReloadStoryIds.add(configuredStoryId)
       else needsReloadStoryIds.delete(configuredStoryId)

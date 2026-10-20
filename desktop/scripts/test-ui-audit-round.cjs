@@ -238,14 +238,38 @@ function pluginEntries(storyId) {
       await saveConfigSection('fixture', 'storyDefaults')
       const sectionWrittenAfterConsent = writes.some(w => w[0] === 'storyDefaults')
 
+      // (d) 边界：核对读取失败（P2）——不得静默放行，必须明示确认
+      const yamlWritesBefore = writes.filter(w => w[0] === 'yaml').length
+      const sectionWritesBefore = writes.filter(w => w[0] === 'storyDefaults').length
+      confirms.length = 0
+      window.__confirmReturn = false   // 拒绝 → 不得写入
+      window.hdsiDesktop.stories.config = async () => { throw new Error('读抖动') }
+      window.hdsiDesktop.stories.configSection = async (_id, _section, data) => {
+        if (data === undefined) throw new Error('读抖动')
+        writes.push(['storyDefaults', data])
+        return { needsReload: false }
+      }
+      byId('config-save').click()      // YAML 标签页仍激活
+      await new Promise(r => setTimeout(r, 250))
+      await saveConfigSection('fixture', 'storyDefaults')
+      const readFailRefused = confirms.filter(m => m.includes('无法核对')).length >= 2
+        && writes.filter(w => w[0] === 'yaml').length === yamlWritesBefore
+        && writes.filter(w => w[0] === 'storyDefaults').length === sectionWritesBefore
+      window.__confirmReturn = true    // 同意 → 照常保存
+      byId('config-save').click()
+      await new Promise(r => setTimeout(r, 250))
+      const readFailWritten = writes.filter(w => w[0] === 'yaml').length > yamlWritesBefore
+
       window.confirm = originalConfirm
-      return { yamlBlocked, yamlWriteCount, secondSaveConfirmFree, sectionBlockedAndRefused, sectionWrittenAfterConsent }
+      return { yamlBlocked, yamlWriteCount, secondSaveConfirmFree, sectionBlockedAndRefused, sectionWrittenAfterConsent, readFailRefused, readFailWritten }
     })
     assert.equal(staleness.yamlBlocked, true, 'YAML 副本过期时保存必须弹出覆盖确认')
     assert.equal(staleness.yamlWriteCount, 1, '确认后 YAML 才写一次')
     assert.equal(staleness.secondSaveConfirmFree, true, '保存成功后 loadedSource 刷新，二次保存不再误报')
     assert.equal(staleness.sectionBlockedAndRefused, true, '节基线过期：拒绝时不得写入')
     assert.equal(staleness.sectionWrittenAfterConsent, true, '节基线过期：同意后可写入')
+    assert.equal(staleness.readFailRefused, true, '读取失败：YAML 与节两路都必须弹"无法核对"确认，拒绝时不写入')
+    assert.equal(staleness.readFailWritten, true, '读取失败：同意后仍可保存（不硬阻断）')
 
     // ── #7：动作参数契约（标量 / 对象两形态）─────────────────────────────
     const contract = await page.evaluate(async () => {

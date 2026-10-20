@@ -306,6 +306,20 @@ function findPluginBlockLine(source: string, rawKey: string, group?: string | nu
   return null
 }
 
+/** 审计批#5 追加（P2）：定位入口——统一三个操作函数的查找策略。
+ *  group 显式提供（含 null=顶层）时只信块级精确定位：目标实例可能已被外部
+ *  改动移除，若降级到行级 first-match，操作（含删除）会落到异处的同名键上；
+ *  此时抛错让用户刷新面板。undefined（旧调用形态/直连测试）保留 first-match
+ *  兜底，维持既有行为。 */
+function locatePluginKey(source: string, rawKey: string, group?: string | null): { line: number, indent: number } | null {
+  const precise = findPluginBlockLine(source, rawKey, group)
+  if (precise) return precise
+  if (group !== undefined) {
+    throw new Error(`未找到插件 ${rawKey}${group ? `（分组 ${group}）` : ''}——配置可能已被外部修改，请刷新插件面板后重试`)
+  }
+  return findKeyLine(source, rawKey)
+}
+
 /** 找到键行（rawKey 精确匹配优先；同键不同 ~ 形态兜底）。 */
 function findKeyLine(source: string, rawKey: string): { line: number, indent: number } | null {
   const lines = source.split(/\r?\n/)
@@ -325,7 +339,7 @@ function findKeyLine(source: string, rawKey: string): { line: number, indent: nu
 /** 启停切换：实例键行加/去 `~` 前缀（Koishi loader 官方停用约定）。 */
 export function togglePlugin(source: string, rawKey: string, enable: boolean, group?: string | null): string {
   const lines = source.split(/\r?\n/)
-  const target = findPluginBlockLine(source, rawKey, group) ?? findKeyLine(source, rawKey)
+  const target = locatePluginKey(source, rawKey, group)
   if (!target) throw new Error(`未找到插件键：${rawKey}`)
   const parsed = parseKeyLine(lines[target.line])
   if (!parsed) throw new Error(`插件键行无法解析：${lines[target.line]}`)
@@ -340,7 +354,7 @@ export function togglePlugin(source: string, rawKey: string, enable: boolean, gr
 /** 替换插件配置体（fragment 为 YAML 原文，保留用户缩进；空串 = 清空配置）。 */
 export function writePluginConfig(source: string, rawKey: string, fragment: string, group?: string | null): string {
   const lines = source.split(/\r?\n/)
-  const target = findPluginBlockLine(source, rawKey, group) ?? findKeyLine(source, rawKey)
+  const target = locatePluginKey(source, rawKey, group)
   if (!target) throw new Error(`未找到插件键：${rawKey}`)
   let bodyEnd = -1
   // 复用块尾判定：从键行向下扫到缩进 <= 键缩进的非空行
@@ -380,7 +394,7 @@ export function appendPlugin(source: string, packageName: string, instanceSuffix
 /** 删除插件块（键行 + 配置体）。 */
 export function removePlugin(source: string, rawKey: string, group?: string | null): string {
   const lines = source.split(/\r?\n/)
-  const target = findPluginBlockLine(source, rawKey, group) ?? findKeyLine(source, rawKey)
+  const target = locatePluginKey(source, rawKey, group)
   if (!target) throw new Error(`未找到插件键：${rawKey}`)
   let bodyEnd = target.line
   for (let j = target.line + 1; j < lines.length; j++) {
