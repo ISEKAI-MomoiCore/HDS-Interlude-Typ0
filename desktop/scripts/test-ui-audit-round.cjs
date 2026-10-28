@@ -20,7 +20,7 @@ function pluginEntries(storyId) {
 }
 
 ;(async () => {
-  const browser = await puppeteer.launch({ executablePath: process.env.UI_TEST_BROWSER || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true })
+  const browser = await puppeteer.launch({ executablePath: process.env.UI_TEST_BROWSER || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: 'shell', args: ['--edge-skip-compat-layer-relaunch'] })
   try {
     const page = await browser.newPage()
     await page.setViewport({ width: 1440, height: 900 })

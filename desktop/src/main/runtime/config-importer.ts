@@ -104,6 +104,8 @@ export interface ImporterDeps {
   /** 账号转移用：占用剧本在跑时先卸载（worker 启动时读 selfId，热占会双端抢消息）。 */
   isStoryRunning?: (storyId: string) => boolean
   unloadStory?: (storyId: string) => Promise<void>
+  /** 回滚恢复用：转移时被卸载的运行中剧本，导入失败后按原运行态重载。 */
+  loadStory?: (storyId: string) => unknown
 }
 
 type RecordLike = Record<string, unknown>
@@ -169,6 +171,32 @@ export function analyzeKoishiYml(source: string): { ok: true, analysis: ImportAn
     else if (apiKey) plaintextKeys += 1
   }
   if (plaintextKeys) warnings.push(`检测到 ${plaintextKeys} 个明文 API Key：导入时自动转入本机密钥库并替换为 $secret: 别名（不写入剧本文件、不进日志）。`)
+  // 审计 L12：providers[].apiKey 之外的明文敏感键（persona/qzone/weather 等
+  // 节）不会被自动迁移，最终保存会被密钥边界硬拒——分析阶段前置警告，用户
+  // 不必等到执行失败回滚才发现要改源 yml。结构性遍历而非行扫描：块标量里
+  // 的示例文本（如主提示词中粘贴的 token: xxx）不误报。
+  {
+    const SENSITIVE_KEY = /^(?:api[-_]?key|access[-_]?token|refresh[-_]?token|auth[-_]?token|bot[-_]?token|client[-_]?secret|secret[-_]?key|authorization|password|passwd|token|secret)$/i
+    const others: string[] = []
+    const walk = (node: unknown, trail: string) => {
+      if (!node || typeof node !== 'object' || Array.isArray(node)) {
+        if (Array.isArray(node)) node.forEach((item, index) => walk(item, `${trail}[${index}]`))
+        return
+      }
+      for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+        if (typeof value === 'string' && SENSITIVE_KEY.test(key)) {
+          const trimmed = value.trim()
+          if (trimmed && trimmed !== 'null' && trimmed !== '~' && !trimmed.startsWith('$secret:')) others.push(`${trail ? trail + '.' : ''}${key}`)
+          continue
+        }
+        // model.providers[].apiKey 走既有迁移路径，不计入
+        if (trail === 'model' && key === 'providers') continue
+        walk(value, trail ? `${trail}.${key}` : key)
+      }
+    }
+    walk(hdsi, '')
+    if (others.length) warnings.push(`检测到 ${others.length} 处不会被自动迁移的明文敏感键（${others.slice(0, 3).join('、')}${others.length > 3 ? ' 等' : ''}）——这些节会原样搬入新剧本并在保存时被密钥边界拒绝；请先在源 yml 改为 $secret: 别名或移除。`)
+  }
 
   const storyDefaults = isRecord(hdsi.storyDefaults) ? hdsi.storyDefaults : {}
   const behavior = BEHAVIOR_KEYS
@@ -244,7 +272,7 @@ export async function executeImport(deps: ImporterDeps, source: ImportSource, op
   const storyName = (options.storyName || text(storyDefaults.characterName) || '导入的剧本').slice(0, 64)
   const storyId = 'import-' + randomUUID().slice(0, 8)
   const meta = deps.createStory({ id: storyId, name: storyName, characterName: text(storyDefaults.characterName) || storyName, description: '从插件版 koishi.yml 导入' })
-  const createdAccount: { registered: boolean, accountKey: string, selfId: string, transferredFrom?: { storyId: string, nickname: string, externalUpstream?: { endpoint: string, tokenAlias?: string }, channelKind?: string } } = { registered: false, accountKey: '', selfId: '' }
+  const createdAccount: { registered: boolean, accountKey: string, selfId: string, transferredFrom?: { storyId: string, nickname: string, externalUpstream?: { endpoint: string, tokenAlias?: string }, channelKind?: string, wasRunning?: boolean } } = { registered: false, accountKey: '', selfId: '' }
 
   try {
     // 剧本 canonical：在模板 doc 上按模块落节，最后一次 mediator.save。
@@ -296,9 +324,14 @@ export async function executeImport(deps: ImporterDeps, source: ImportSource, op
         const previous = deps.accountRegistry.findBySelfId(adapter.selfId)
         let transferredNote = ''
         if (previous && previous.storyId !== storyId) {
-          if (deps.isStoryRunning?.(previous.storyId) && deps.unloadStory) await deps.unloadStory(previous.storyId)
+          // 记住是否真的卸载了占用剧本——回滚要按原运行态恢复（审计 H2）。
+          let transferredWasRunning = false
+          if (deps.isStoryRunning?.(previous.storyId) && deps.unloadStory) {
+            await deps.unloadStory(previous.storyId)
+            transferredWasRunning = true
+          }
           deps.accountRegistry.removeAccount(previous.storyId, adapter.selfId)
-          createdAccount.transferredFrom = { storyId: previous.storyId, nickname: previous.nickname, ...(previous.externalUpstream ? { externalUpstream: previous.externalUpstream } : {}), ...(previous.channelKind ? { channelKind: previous.channelKind } : {}) }
+          createdAccount.transferredFrom = { storyId: previous.storyId, nickname: previous.nickname, ...(previous.externalUpstream ? { externalUpstream: previous.externalUpstream } : {}), ...(previous.channelKind ? { channelKind: previous.channelKind } : {}), ...(transferredWasRunning ? { wasRunning: true } : {}) }
           transferredNote = `；账号已从剧本 ${previous.storyId} 转移`
         }
         deps.accountRegistry.register(storyId, adapter.selfId, storyName, { endpoint: url.toString(), ...(tokenAlias ? { tokenAlias } : {}) }, 'qq')
@@ -416,15 +449,22 @@ export async function executeImport(deps: ImporterDeps, source: ImportSource, op
   }
 }
 
-function rollback(deps: ImporterDeps, storyDir: string, createdSecrets: string[], account: { registered: boolean, accountKey: string, selfId: string, transferredFrom?: { storyId: string, nickname: string, externalUpstream?: { endpoint: string, tokenAlias?: string }, channelKind?: string } }, storyId: string) {
+function rollback(deps: ImporterDeps, storyDir: string, createdSecrets: string[], account: { registered: boolean, accountKey: string, selfId: string, transferredFrom?: { storyId: string, nickname: string, externalUpstream?: { endpoint: string, tokenAlias?: string }, channelKind?: string, wasRunning?: boolean } }, storyId: string) {
   try {
     if (account.registered) {
       try { deps.bindings.unbind(account.accountKey) } catch { /* 回滚尽力而为 */ }
       try { deps.accountRegistry.removeAccount(storyId, account.selfId) } catch { /* 回滚尽力而为 */ }
     }
-    // 转移还原：把账号登记回原剧本（含原上游/通道）。
+    // 转移还原：登记 + 绑定都回原剧本（审计 H2：此前只还原登记不还原绑定，
+    // 被转移账号的消息会全部落入 unassigned 静默丢失）；被卸载的运行中剧本
+    // 按原运行态重载，外部上游连接器同步回收。
     if (account.transferredFrom) {
       try { deps.accountRegistry.register(account.transferredFrom.storyId, account.selfId, account.transferredFrom.nickname, account.transferredFrom.externalUpstream, account.transferredFrom.channelKind as any) } catch { /* 回滚尽力而为 */ }
+      try { deps.bindings.bind({ accountKey: account.accountKey, storyId: account.transferredFrom.storyId, transport: 'onebot-external' }, { replace: true }) } catch { /* 回滚尽力而为 */ }
+      try { deps.syncExternalConnector(account.transferredFrom.storyId) } catch { /* 回滚尽力而为 */ }
+      if (account.transferredFrom.wasRunning && deps.loadStory) {
+        try { deps.loadStory(account.transferredFrom.storyId) } catch { /* 回滚尽力而为 */ }
+      }
     }
     for (const alias of createdSecrets) { try { deps.secrets.remove(alias) } catch { /* 回滚尽力而为 */ } }
     try { rmSync(storyDir, { recursive: true, force: true }) } catch { /* 回滚尽力而为 */ }

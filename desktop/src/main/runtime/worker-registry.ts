@@ -100,6 +100,19 @@ export class WorkerRegistry {
     try { rmSync(this.fileFor(storyId), { force: true }) } catch { /* 尽力而为 */ }
   }
 
+  /** 就绪检查用：该剧本当前登记 worker 的启动时间（毫秒 epoch）；无有效登记
+   *  返回 undefined。读单文件、不抛——登记簿是安全网，缺档按"未知"处理。 */
+  startedAt(storyId: string): number | undefined {
+    try {
+      const file = this.fileFor(storyId)
+      if (!existsSync(file)) return undefined
+      const record = JSON.parse(readFileSync(file, 'utf8')) as WorkerRegistryRecord
+      if (!Number.isInteger(record?.pid) || record.pid <= 0) return undefined
+      const at = Date.parse(record.startedAtIso ?? '')
+      return Number.isNaN(at) ? undefined : at
+    } catch { return undefined }
+  }
+
   private readRecords(): Array<{ record: WorkerRegistryRecord, file: string }> {
     const out: Array<{ record: WorkerRegistryRecord, file: string }> = []
     let storyDirs: string[] = []
@@ -128,6 +141,15 @@ export class WorkerRegistry {
       const base = { storyId: record.storyId, pid: record.pid }
       try {
         if (!this.probe.isAlive(record.pid)) {
+          // 审计 L14：快照与 rmSync 之间用户可能已 load 同 ID 剧本（新 pid 写
+          // 同一文件）——删除前重读核对 pid，不一致说明登记已被新 worker 取代。
+          try {
+            const fresh = JSON.parse(readFileSync(file, 'utf8')) as { pid?: number }
+            if (Number.isInteger(fresh?.pid) && fresh.pid !== record.pid) {
+              verdicts.push({ ...base, action: 'own-record-kept', detail: `登记已被新 pid=${fresh.pid} 取代，跳过清理` })
+              continue
+            }
+          } catch { /* 读失败按快照处置 */ }
           try { rmSync(file, { force: true }) } catch { /* 已被清走 */ }
           verdicts.push({ ...base, action: 'stale-removed' })
           continue

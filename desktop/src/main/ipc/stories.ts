@@ -44,6 +44,9 @@ export function registerStoriesIpc(ctx: IpcContext) {
       const records = inbox.peek(metaId)
       if (!records.length) return { consumed: 0, pending: 0 }
       inbox.markAttempt(metaId, records.map(record => record.id))
+      // 审计 M6：回放窗口内占用这些消息的去重键——同一 rawMessageId 的实时
+      // 重投按 duplicate 拒收（此前会与回放批次双发）；失败路径释放归还。
+      const releaseHolds = ctx.router.holdForReplay(metaId, records.map(record => record.event))
       try {
         const consumedIds = await stories.replayInbox(metaId, records)
         const consumed = inbox.acknowledge(metaId, consumedIds)
@@ -54,6 +57,7 @@ export function registerStoriesIpc(ctx: IpcContext) {
         inbox.markAttempt(metaId, records.map(record => record.id), String(error))
         throw error
       } finally {
+        releaseHolds()
         inboxReplays.delete(metaId)
       }
     })()
@@ -111,18 +115,30 @@ export function registerStoriesIpc(ctx: IpcContext) {
       broadcast('story:log', { storyId: metaId, line: '[backup] 备份前卸载 worker 以获得一致的数据库快照…' })
       await stories.unload(metaId)
     }
+    // 审计 M2：恢复结果显式进返回契约（渲染层本就判读 restored 字段，此前
+    // 主进程从不返回它）；恢复失败不得吞掉已成功的备份结果。
+    const result: { archive: string, checks: string[], restored?: boolean, restoreError?: string } = { archive: '', checks: [] }
     try {
       const archive = archives.create(metaId, handle.dir)
       const verdict = verifyStoryArchive(archive)
       broadcast('story:log', { storyId: metaId, line: `[backup] 已创建并校验快照：${archive}（${verdict.checks.join('；')}）` })
-      return { archive, checks: verdict.checks }
+      result.archive = archive
+      result.checks = verdict.checks
     } finally {
       if (wasRunning) {
-        const restored = stories.load(metaId)
-        if (restored?.running) rememberWorkerConfig(metaId)
-        broadcast('story:log', { storyId: metaId, line: '[backup] 备份完成，已恢复运行。' })
+        try {
+          const restored = stories.load(metaId)
+          if (restored?.running) rememberWorkerConfig(metaId)
+          broadcast('story:log', { storyId: metaId, line: '[backup] 备份完成，已恢复运行。' })
+          result.restored = true
+        } catch (error) {
+          broadcast('story:log', { storyId: metaId, line: `[backup] 备份已完成，但恢复运行失败：${error}——剧本当前未加载，可手动加载。` })
+          result.restored = false
+          result.restoreError = String(error)
+        }
       }
     }
+    return result
   })
   registerHandle('stories:forkBranch', async (_event, metaId: string, payload: unknown) => {
     const handle = stories.get(String(metaId || ''))
@@ -231,9 +247,36 @@ export function registerStoriesIpc(ctx: IpcContext) {
     // （与 stories:backup 的 D3-1 要求一致）；账号登记同步清理，否则 QQ 号被
     // 幽灵登记永久锁死（accounts:unbind 对已删剧本直接抛错，用户无解除路径）。
     if (handle.running) await stories.unload(metaId)
+    // 审计 L8：删除前收集该剧本独占的密钥别名（账号 token 别名 + canonical
+    // 里的 $secret: 引用），剧本删除后回收——其它剧本仍引用的保留。
+    const doomedAliases = new Set<string>()
+    for (const entry of accountRegistry.listByStory(metaId)) {
+      if (entry.externalUpstream?.tokenAlias) doomedAliases.add(entry.externalUpstream.tokenAlias)
+    }
+    try {
+      for (const match of config.read(handle.dir).matchAll(/\$secret:([A-Za-z0-9][A-Za-z0-9_.-]{0,127})/g)) doomedAliases.add(match[1])
+    } catch { /* canonical 读失败只回收账号 token 别名 */ }
     const backup = archives.create(metaId, handle.dir)
     const trash = archives.trash(metaId, handle.dir)
+    // 审计 H3：内存缓存随剧本一并遗忘——同 ID 重建时旧去重 key/投递记录/
+    // 运行相位残留会把新剧本的消息误判重复、显示幽灵历史与旧相位。
+    stories.forgetRuntimeState(metaId)
+    receipts.invalidate(metaId)
+    ctx.outbox.invalidate(metaId)
     workerConfigHashes.delete(metaId)
+    // 其它剧本（canonical $secret: 引用 + 账号 token 别名）仍使用的别名不清除
+    for (const other of stories.list()) {
+      if (other.meta.id === metaId) continue
+      try {
+        for (const match of config.read(other.dir).matchAll(/\$secret:([A-Za-z0-9][A-Za-z0-9_.-]{0,127})/g)) doomedAliases.delete(match[1])
+      } catch { /* 忽略不可读配置 */ }
+      for (const entry of accountRegistry.listByStory(other.meta.id)) {
+        if (entry.externalUpstream?.tokenAlias) doomedAliases.delete(entry.externalUpstream.tokenAlias)
+      }
+    }
+    for (const alias of doomedAliases) {
+      try { secrets.remove(alias) } catch { /* 别名可能已不存在 */ }
+    }
     const removedBindings = bindings.unbindStory(metaId)
     accountRegistry.removeByStory(metaId)
     // 审计修复：同步回收该剧本的外部上游连接器——否则已删剧本的 WS 连接
@@ -243,6 +286,10 @@ export function registerStoriesIpc(ctx: IpcContext) {
     return { backup, trash, removedBindings: removedBindings.length }
   })
   registerHandle('stories:openBackupFolder', async (_event, metaId: string) => {
+    // 审计 M5：全部 stories:* 兄弟 handler 都经 stories.get() 做身份校验
+    // （防路径拼接逃逸），此处不得例外——metaId 直接进 path.join 会把
+    // `../..` 送到 shell.openPath 打开任意目录。
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(String(metaId || ''))) throw new Error('非法剧本 ID。')
     const folder = path.join(dataRoot, 'backups', metaId)
     if (!existsSync(folder)) throw new Error('当前剧本尚未创建备份。')
     await shell.openPath(folder)

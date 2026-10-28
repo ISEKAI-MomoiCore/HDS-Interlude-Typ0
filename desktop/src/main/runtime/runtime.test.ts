@@ -13,6 +13,7 @@ import { MessageRouter } from './message-router'
 import { DeliveryOutbox } from './outbox'
 import { SecretStore } from './secrets'
 import { normalizeTimelineRange, normalizeTimelineSnapshot } from './story-repository'
+import { patchPluginKeys, surgicalPluginUpdate, diffConfigOps } from './config-surgery'
 import { selectResumableStories, WorkerRegistry } from './worker-registry'
 import { HostLock } from './host-lock'
 import { captureConsoleConfig } from './console-config-capture'
@@ -332,6 +333,33 @@ test('配置中介只接受已保存的密钥别名，并为 canonical YAML 留�
   } finally { temp.cleanup() }
 })
 
+test('审计 L10：主提示词块标量里的 “token: xxx” 文案不误报，真明文仍拒绝', () => {
+  const temp = fixture()
+  try {
+    const protector = { available: () => true, encrypt: (value: string) => `safe:${value}`, decrypt: (value: string) => value.slice(5) }
+    const secrets = new SecretStore(temp.root, protector)
+    const mediator = new StoryConfigMediator(secrets)
+    // 块标量正文里的敏感键样式是普通文案——不得堵死保存
+    const blockScalar = [
+      'plugins:',
+      '  hds-interlude:m0:',
+      '    storyDefaults:',
+      "      mainPrompt: |",
+      '        示例配置（纯文案）：',
+      '        token: abc123',
+      '        password: hunter2',
+      '    model: {}',
+    ].join('\n')
+    const storyDir = path.join(temp.stories, 'alpha')
+    require('node:fs').mkdirSync(storyDir, { recursive: true })
+    writeFileSync(path.join(storyDir, 'koishi.yml'), blockScalar + '\n')
+    const saved = mediator.save(storyDir, blockScalar + '\n')
+    assert.ok(saved, '块标量文案不得触发敏感键拒绝')
+    // 真实的映射键明文仍然硬拒
+    assert.throws(() => mediator.inspect('plugins:\n  hds-interlude:m0:\n    token: plain\n'), /明文密钥/)
+  } finally { temp.cleanup() }
+})
+
 test('故事备份排除运行期 resolved 配置，且不包含宿主密钥库', () => {
   const temp = fixture()
   try {
@@ -392,6 +420,32 @@ test('mute、pause 与未就绪 worker 都可靠进入收件箱；bridge 就绪�
     inbox.markAttempt('alpha', [pending[0].id])
     assert.equal(inbox.acknowledge('alpha', [pending[0].id]), 1)
     assert.equal(inbox.size('alpha'), 2)
+  } finally { temp.cleanup() }
+})
+
+test('审计 M6：回放占用窗口内同 ID 实时重投按 duplicate 拒收，释放后放行', async () => {
+  const temp = fixture()
+  try {
+    const registry = new BindingRegistry(temp.root)
+    registry.bind({ accountKey: 'sandbox:10001', storyId: 'alpha', transport: 'sandbox' })
+    const inbox = new InboxRepository(temp.stories)
+    let delivered = 0
+    const router = new MessageRouter(temp.root, registry, { getPhase: () => 'running' }, inbox, {
+      isBridgeReady: () => true,
+      deliverInbound: async () => { delivered += 1 },
+    }, new InboundReceiptLedger(temp.stories))
+    const event = { transport: 'sandbox' as const, accountKey: 'sandbox:10001', platform: 'sandbox', selfId: '10001', senderId: '20002', kind: 'private' as const, channelId: 'private:20002', content: '回放批次里的消息', occurredAt: '2026-09-02T12:00:00.000Z', rawMessageId: 'rep-1' }
+    // 回放在途：占用该消息的去重键
+    const release = router.holdForReplay('alpha', [event])
+    assert.equal((await router.route(event)).disposition, 'ignored-duplicate', '窗口内同 ID 实时重投必须拒收')
+    assert.equal(delivered, 0)
+    // 其它消息不受影响
+    assert.equal((await router.route({ ...event, rawMessageId: 'other-1' })).disposition, 'delivered-to-worker')
+    assert.equal(delivered, 1)
+    // 回放失败释放窗口 → 重投可再次进入（at-least-once 语义）
+    release()
+    assert.equal((await router.route(event)).disposition, 'delivered-to-worker')
+    assert.equal(delivered, 2)
   } finally { temp.cleanup() }
 })
 
@@ -463,6 +517,115 @@ test('Outbox only becomes sent after an explicit transport receipt', () => {
   } finally { temp.cleanup() }
 })
 
+test('审计 H3：账本与 Outbox 缓存在剧本删除后失效（同 ID 重建不残留旧 key）', () => {
+  const temp = fixture()
+  try {
+    const receipts = new InboundReceiptLedger(temp.stories)
+    const outbox = new DeliveryOutbox(temp.stories)
+    // 第一世：账本接受一条消息、outbox 落一条投递
+    const event = { transport: 'onebot-external' as const, accountKey: 'onebot:10001', platform: 'onebot', selfId: '10001', senderId: '20002', kind: 'private' as const, content: '旧世界的消息', occurredAt: '2026-09-02T12:00:00.000Z', channelId: 'private:20002', rawMessageId: '777' }
+    assert.equal(receipts.has('alpha', event), false)
+    receipts.accept('alpha', event)
+    assert.equal(receipts.has('alpha', event), true)
+    const base = { accountKey: 'onebot:10001', transport: 'onebot-external' as const, platform: 'onebot', selfId: '10001', channelId: 'private:20002', kind: 'private' as const, content: '旧投递', occurredAt: '2026-09-02T12:00:00.000Z' }
+    outbox.enqueue('alpha', { ...base, deliveryId: 'old-1' })
+    assert.equal(outbox.summary('alpha')?.total, 1)
+    // 删除剧本（目录入回收站）→ 失效。只删目录不清缓存仍命中旧内存（这正是
+    // 本缺陷的机理），两者都做才是完整删除语义。
+    rmSync(path.join(temp.stories, 'alpha'), { recursive: true, force: true })
+    receipts.invalidate('alpha')
+    outbox.invalidate('alpha')
+    // 第二世（同 ID 重建）：同一消息不再被误判重复；投递历史为空
+    assert.equal(receipts.has('alpha', event), false, '重建后的同 ID 消息不得命中旧账本')
+    assert.equal(outbox.summary('alpha')?.total ?? 0, 0, '重建后的同 ID 不得出现幽灵投递记录')
+    // 非法 ID 不抛错
+    receipts.invalidate('../evil')
+    outbox.invalidate('../evil')
+  } finally { temp.cleanup() }
+})
+
+const SURGERY_YML = [
+  '# 顶层说明注释——结构化保存后必须原样保留',
+  'plugins:',
+  '  group:adapter:',
+  '    adapter-onebot:m0:',
+  '      selfId: "" # 在桌面账号面板登记后填写（QQ号）',
+  '  hds-interlude:m0:',
+  '    # 模板正文注释：叙事节奏相关',
+  '    runtime:',
+  '      sweepIntervalMinutes: 5',
+  '    urge:',
+  '      threshold: 0.35',
+  '    model:',
+  '      providers:',
+  '        - id: primary',
+  '          temperature: 0.8 # 行内注释',
+  '',
+].join('\n')
+
+test('审计 M4：键行手术保留注释/顺序，仅重写目标键行', () => {
+  const next = patchPluginKeys(SURGERY_YML, 'hds-interlude:m0', [
+    { path: ['runtime', 'sweepIntervalMinutes'], value: 2 },
+    { path: ['urge', 'threshold'], value: 0.5 },
+  ])
+  assert.match(next, /# 顶层说明注释——结构化保存后必须原样保留/)
+  assert.match(next, /# 模板正文注释：叙事节奏相关/)
+  assert.match(next, /selfId: "" # 在桌面账号面板登记后填写（QQ号）/)
+  assert.match(next, /sweepIntervalMinutes: 2/)
+  assert.doesNotMatch(next, /sweepIntervalMinutes: 5/)
+  assert.match(next, /threshold: 0.5/)
+  assert.match(next, /temperature: 0.8 # 行内注释/)
+  // 结构可解析且语义正确
+  const parsed = yaml.load(next) as any
+  assert.equal(parsed.plugins['hds-interlude:m0'].runtime.sweepIntervalMinutes, 2)
+  assert.equal(parsed.plugins['hds-interlude:m0'].urge.threshold, 0.5)
+})
+
+test('审计 M4：手术创建缺失的嵌套节与叶子；删除叶子时空节一并清理', () => {
+  const next = patchPluginKeys(SURGERY_YML, 'hds-interlude:m0', [
+    { path: ['agency', 'enabled'], value: true },
+    { path: ['urge', 'threshold'], remove: true },
+  ])
+  const parsed = yaml.load(next) as any
+  assert.equal(parsed.plugins['hds-interlude:m0'].agency.enabled, true, '缺失的 agency 节应被创建')
+  // urge 节删除唯一叶子后整节消失（避免 YAML 空节 null 覆盖默认值）
+  assert.equal(parsed.plugins['hds-interlude:m0'].urge, undefined)
+  assert.doesNotMatch(next, /urge:/)
+  assert.match(next, /# 顶层说明注释——结构化保存后必须原样保留/)
+})
+
+test('审计 M4：surgicalPluginUpdate 深差异驱动（增/改/删三种 op）且复合值整行替换', () => {
+  // 生产契约：before 必须是源文本的解析结果（mixer/configSection 均如此），
+  // after 是它的克隆变异——diff 出的 ops 才与文本一致。
+  const before = (yaml.load(SURGERY_YML) as any).plugins['hds-interlude:m0']
+  const after = JSON.parse(JSON.stringify(before))
+  after.runtime.sweepIntervalMinutes = 1
+  after.runtime.extra = true
+  after.users = ['a', 'c', 'd']
+  after.fresh = 'new'
+  after.urge.threshold = undefined
+  delete after.urge.threshold
+  const ops = diffConfigOps(before, after)
+  assert.equal(ops.length, 5, '恰好五个叶子差异（含 urge.threshold 删除）')
+  const next = surgicalPluginUpdate(SURGERY_YML, 'hds-interlude:m0', before, after)
+  const parsed = yaml.load(next) as any
+  const hdsi = parsed.plugins['hds-interlude:m0']
+  assert.equal(hdsi.runtime.sweepIntervalMinutes, 1)
+  assert.equal(hdsi.runtime.extra, true)
+  assert.deepEqual(hdsi.users, ['a', 'c', 'd'])
+  assert.equal(hdsi.fresh, 'new')
+  assert.equal(hdsi.urge, undefined, 'urge 唯一叶子被删后空节清理')
+  assert.match(next, /# 顶层说明注释——结构化保存后必须原样保留/)
+  assert.match(next, /# 模板正文注释：叙事节奏相关/)
+})
+
+test('审计 M4：插件块缺失时先追加空块再落键', () => {
+  const bare = 'plugins:\n  group:adapter:\n    adapter-onebot:m0: {}\n'
+  const next = patchPluginKeys(bare, 'hds-interlude:m0', [{ path: ['runtime', 'sweepIntervalMinutes'], value: 3 }])
+  const parsed = yaml.load(next) as any
+  assert.equal(parsed.plugins['hds-interlude:m0'].runtime.sweepIntervalMinutes, 3)
+})
+
 test('P1-1 findByIntentKey：跨 deliveryId 的业务幂等查询取最新记录', () => {
   const temp = fixture()
   try {
@@ -499,6 +662,28 @@ test('时间线投影在主进程边界被规范化，未知 IPC 字段不会进
   assert.equal(snapshot.scenes[0].hook, '午后')
   assert.equal(snapshot.facts[0].content, '下午有课。')
   assert.equal(snapshot.preplan?.revision, 2)
+})
+
+test('时间线条目 metadata.channel 经规范化透传（§8.3 渠道徽标/来源端点数据源）', () => {
+  const range = normalizeTimelineRange({
+    protocol: 1, revision: 'r', storyId: 'alpha', range: { from: '2026-09-02T10:00:00.000Z', to: '2026-09-02T13:00:00.000Z' },
+    entries: [
+      // 正常形态：M1a 写入的 channel 单层对象 → 全字段透传
+      { entityId: 'entry:1', id: 1, storyId: 'alpha', kind: 'user-message', actor: 'user', content: '早', occurredAt: '2026-09-02T12:00:00.000Z',
+        metadata: { channel: { channelKind: 'wechat', selfId: '10001', conversationKind: 'private' }, attempt: 2 } },
+      // 防御形态：嵌套对象浅拷贝原始值字段（两层深对象字段丢弃）、数组/null 丢弃，不抛错
+      { entityId: 'entry:2', id: 2, storyId: 'alpha', kind: 'script', actor: 'narrator', content: '她抬头。', occurredAt: '2026-09-02T12:01:00.000Z',
+        metadata: { nested: { deep: true, deeper: { x: 1 } }, list: [1], blank: null, keep: 'x', num: 7 } },
+    ],
+  })
+  const first = range.entries[0]
+  // 渲染层 app.js 读 entry.metadata?.channel ?? entry.metadata —— channel 必须完整在场
+  assert.deepEqual(first.metadata, { channel: { channelKind: 'wechat', selfId: '10001', conversationKind: 'private' }, attempt: 2 })
+  const second = range.entries[1]
+  assert.deepEqual(second.metadata, { keep: 'x', num: 7, nested: { deep: true } })
+  assert.equal((second.metadata as any).list, undefined)
+  assert.equal((second.metadata as any).blank, undefined)
+  assert.equal((second.metadata as any).nested.deeper, undefined)
 })
 
 test('范围时间线保留 HDSI 提供的真实 Script 覆盖区间与不透明 revision', () => {
@@ -1107,6 +1292,72 @@ test('M7-2 编译注入：selfId/端点只进 resolved 配置，canonical 不动
   } finally { temp.cleanup() }
 })
 
+test('M7-2 编译注入（issue #2）：空 token 视为未配置并注入；非空用户 token 保留', () => {
+  const temp = fixture()
+  const previousToken = process.env.HDSI_ONEBOT_TOKEN
+  const restoreToken = () => {
+    if (previousToken === undefined) delete process.env.HDSI_ONEBOT_TOKEN
+    else process.env.HDSI_ONEBOT_TOKEN = previousToken
+  }
+  try {
+    const protector = { available: () => true, encrypt: (value: string) => `safe:${value}`, decrypt: (value: string) => value.slice(5) }
+    const secrets = new SecretStore(temp.root, protector)
+    const compiler = new StoryConfigCompiler(secrets)
+    // 向导/导入产生的 canonical 形状：token 键存在但为空——issue #2 根因是
+    // 旧逻辑把"键存在"当"已配置"跳过注入，worker 无鉴权连桥被 1008 拒绝。
+    const writeStory = (name: string, adapterBody: string, eol = '\n') => {
+      const storyDir = path.join(temp.stories, name)
+      require('node:fs').mkdirSync(storyDir, { recursive: true })
+      require('node:fs').writeFileSync(path.join(storyDir, 'koishi.yml'),
+        ['plugins:', '  group:adapter:', '    adapter-onebot:m0:', ...adapterBody.split('\n'), '  hds-interlude:m0:', '    model: {}', ''].join(eol))
+      return storyDir
+    }
+    const resolveText = (dir: string) => {
+      const compiled = compiler.compile(dir, { onebot: { selfId: '1303322392', endpoint: 'ws://127.0.0.1:6709/onebot/x' } })
+      const text = readFileSync(compiled.file, 'utf8')
+      compiled.cleanup()
+      return text
+    }
+
+    process.env.HDSI_ONEBOT_TOKEN = 'host-bridge-token'
+    try {
+      // 向导模板形状（"" 带行尾注释）→ 注入
+      const wizardText = resolveText(writeStory('wizard', '      selfId: ""\n      protocol: ws\n      endpoint: ""\n      token: "" # 可选：桌面桥接 token'))
+      assert.match(wizardText, /token: "host-bridge-token"/, '空 token（带注释）必须被宿主 token 注入替换')
+      assert.doesNotMatch(wizardText, /token: ""/)
+
+      // 单引号空值 → 注入
+      assert.match(resolveText(writeStory('single', "      selfId: ''\n      token: ''")), /token: "host-bridge-token"/)
+      // 裸空值（无引号无内容）→ 注入
+      assert.match(resolveText(writeStory('bare', '      selfId: ""\n      token:')), /token: "host-bridge-token"/)
+      // CRLF 行尾：注入且不产生重复 token 键
+      const crlfText = resolveText(writeStory('crlf', "      selfId: \"\"\n      token: ''", '\r\n'))
+      const crlfTokenLines = crlfText.split('\n').filter(l => /token:/.test(l))
+      assert.equal(crlfTokenLines.length, 1, 'CRLF 下 token 不得重复：' + JSON.stringify(crlfTokenLines))
+      assert.match(crlfText, /token: "host-bridge-token"/)
+
+      // 用户手写非空 token：保留不覆盖（config-authority：canonical 归用户）
+      const userText = resolveText(writeStory('user', "      selfId: \"\"\n      token: 'user-secret'"))
+      assert.match(userText, /token: 'user-secret'/)
+      assert.equal(userText.includes('host-bridge-token'), false)
+
+      // 无 token 键的旧剧本 → 注入（既有行为回归锚）
+      assert.match(resolveText(writeStory('legacy2', '      selfId: ""\n      protocol: ws\n      endpoint: ""')), /token: "host-bridge-token"/)
+    } finally {
+      restoreToken()
+    }
+
+    // 桥降级（env 无 token）：空值原样保留，不注入空串；canonical 全程不被污染
+    delete process.env.HDSI_ONEBOT_TOKEN
+    const degradedDir = writeStory('degraded', "      selfId: \"\"\n      token: ''")
+    assert.match(resolveText(degradedDir), /token: ''/)
+    assert.equal(readFileSync(path.join(degradedDir, 'koishi.yml'), 'utf8').includes('host-bridge-token'), false)
+  } finally {
+    restoreToken()
+    temp.cleanup()
+  }
+})
+
 test('M7-3 ExternalOneBotConnector：连真实上游、私聊入站转换、echo 回执与显式失败', async () => {
   const temp = fixture()
   try {
@@ -1300,8 +1551,14 @@ test('D2-1 worker 登记簿：六种处置决策矩阵与 auto-resume 选择', (
     const rec = new WorkerRegistry(temp, probe, SELF).record('g', 777)
     assert.equal(rec?.pid, 777)
     assert.equal(existsSync(path.join(temp, 'g', '.typ-0-runtime', 'worker.json')), true)
+    // startedAt（就绪检查宽限期用）：登记后可读到近当前时间，clear/无登记为 undefined
+    const startedAt = new WorkerRegistry(temp, probe, SELF).startedAt('g')
+    assert.equal(typeof startedAt, 'number')
+    assert.ok(startedAt! <= Date.now() && Date.now() - startedAt! < 60_000, 'startedAt 应为接近当前的毫秒时间戳')
+    assert.equal(new WorkerRegistry(temp, probe, SELF).startedAt('no-such-story'), undefined)
     new WorkerRegistry(temp, probe, SELF).clear('g')
     assert.equal(existsSync(path.join(temp, 'g', '.typ-0-runtime', 'worker.json')), false)
+    assert.equal(new WorkerRegistry(temp, probe, SELF).startedAt('g'), undefined)
 
     // auto-resume 只选 running
     const picked = selectResumableStories([

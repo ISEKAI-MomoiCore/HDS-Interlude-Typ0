@@ -44,6 +44,40 @@ export interface TimelineEntryView {
   audioCount?: number
   alterValue?: number
   alterOffset?: string
+  /** 有限透传的条目元数据——渲染层 §8.3 渠道徽标 / HUD 渠道标签 / Inspector
+   *  来源端点消费 metadata.channel（channelKind/selfId/conversationKind）。
+   *  顶层与单层嵌套对象均浅拷贝、值仅限原始类型，防御 worker IPC 边界。 */
+  metadata?: Record<string, unknown>
+}
+
+function primitiveFields(source: any): Record<string, unknown> | undefined {
+  const out: Record<string, unknown> = {}
+  let any = false
+  for (const [key, raw] of Object.entries(source ?? {})) {
+    if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') {
+      out[key] = raw
+      any = true
+    }
+  }
+  return any ? out : undefined
+}
+
+/** metadata 的防御性规范化：顶层原始值保留；嵌套对象浅拷贝其原始值字段
+ *  （channel = 单层 {channelKind,selfId,conversationKind}），更深/数组/空值丢弃。 */
+function normalizeEntryMetadata(value: any): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const out: Record<string, unknown> = {}
+  let any = false
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') {
+      out[key] = raw
+      any = true
+    } else if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const nested = primitiveFields(raw)
+      if (nested) { out[key] = nested; any = true }
+    }
+  }
+  return any ? out : undefined
 }
 
 export interface AlterDesktopView {
@@ -181,6 +215,7 @@ function normalizeEntry(entry: any): TimelineEntryView {
     ...(typeof entry?.audioCount === 'number' && entry.audioCount > 0 ? { audioCount: entry.audioCount } : {}),
     ...(typeof entry?.alterValue === 'number' ? { alterValue: entry.alterValue } : {}),
     ...(typeof entry?.alterOffset === 'string' && entry.alterOffset ? { alterOffset: entry.alterOffset } : {}),
+    ...(normalizeEntryMetadata(entry?.metadata) ? { metadata: normalizeEntryMetadata(entry.metadata) } : {}),
   }
 }
 

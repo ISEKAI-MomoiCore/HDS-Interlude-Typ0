@@ -67,8 +67,10 @@ function satisfiesSingle(condition: string, current: string): boolean | null {
     case '<=': return order <= 0
     case '^': {
       if (order < 0) return false
-      const [major] = target.split('.').map(Number)
-      const [currentMajor] = current.split('.').map(Number)
+      const [major, minor] = target.split('.').map(Number)
+      const [currentMajor, currentMinor] = current.split('.').map(Number)
+      // npm 语义：^0.x.y 锁定 minor（0.4.2 不含 0.5.0）；≥1 才放开 minor。
+      if (major === 0) return currentMajor === 0 && currentMinor === (minor ?? 0)
       return currentMajor === major
     }
     case '~': {

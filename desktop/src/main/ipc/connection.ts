@@ -38,7 +38,15 @@ export function registerConnectionIpc(ctx: IpcContext) {
     try {
       const resolved = await resolveUpstreamToken({ endpoint: address, token: typeof token === 'string' ? token.slice(0, 512) : undefined, storyId: String(request?.storyId ?? ''), selfId, useLocalToken: request?.useLocalToken === true, reuseSavedToken: request?.reuseSavedToken !== false }, ctx.accountRegistry, ctx.secrets)
       return await probeUpstream(address, resolved, selfId || undefined)
-    } catch { return { ok: false, code: 'ONEBOT_AUTH_FAILED', error: '无法读取与当前账号、端点匹配的访问令牌；请重新填写或检查本机 SnowLuma 配置。' } }
+    } catch (error) {
+      // 审计 L9：令牌解析失败 ≠ 鉴权失败——别名丢失/密文不可解（换机迁移）与
+      // SnowLuma 配置缺失是三种不同方向的排查，不再一律误导为 AUTH_FAILED。
+      const message = String(error instanceof Error ? error.message : error)
+      if (/别名|alias|解密|decrypt|undecrypt/i.test(message)) {
+        return { ok: false, code: 'ONEBOT_AUTH_FAILED', error: `密钥库无法解析已保存令牌（${message}）——请在密钥面板重录后重试。` }
+      }
+      return { ok: false, code: 'ONEBOT_AUTH_FAILED', error: `无法读取与当前账号、端点匹配的访问令牌（${message}）；请重新填写或检查本机 SnowLuma 配置。` }
+    }
   })
   // P0: 首次运行统一状态快照。readyCheck 保留为兼容别名，但两者均由
   // Main 侧同一份 FirstRunReadiness 生成，Renderer 不再自行推断状态。

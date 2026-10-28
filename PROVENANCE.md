@@ -8,20 +8,24 @@
 | 字段 | 值 |
 |---|---|
 | plugin package | `koishi-plugin-hds-interlude` |
-| plugin version | `1.0.1-rc57` |
-| 本地构建标识 | `rc57`（rc55 + rc56 全量静态审查修复批：群超时/动作 ambiguous→pending 语义、Console 配置面审计重排、SHARE_SECTIONS 补 weather；rc57：Overlay 单场景演化修复（issue #8）、presetSync 前置 Console 首位、默认值基线对齐） |
-| package 文件 | `desktop/vendor/koishi-plugin-hds-interlude-1.0.1-rc57.tgz`（自 0.0.1-m4 起随仓库自带；同目录附 .sha256。上源为插件主仓库 `plugins/hds-interlude/release/`，内容哈希一致） |
-| package SHA256 | `4dc868cf2bb892e425ba9eb65bf917eaab05af9fb835abd21d00ab2d9c7e8dff`（与 release/ 附带 .sha256 一致） |
-| bundle SHA256（package/lib/index.js） | `d4d4e9c8a93aab0edc84361d6fd6474a12b8bdf122c23a47254541d2fe3e6842` |
-| 桌面安装位置校验 | `desktop/node_modules/koishi-plugin-hds-interlude/lib/index.js` 哈希一致（2026-10-18 验证；npm 安装） |
-| src 树指纹（src/**/*.ts 排序哈希） | `4a90ba926410b19e6d6d1a622b107d06f56c1c3388eac76594cc7878dc471708`（方法：`find src -name '*.ts' | sort | xargs sha256sum | sha256sum`） |
-| plugin package.json SHA256 | `81593421ca60f435dc2ebb125fdea1342edc97c1284325cf5099cd156974e475` |
-| desktop version | `0.0.1-m4`（自 m4 起托管于 github.com/ISEKAI-MomoiCore/HDS-Interlude-Typ0） |
-| build timestamp | 2026-10-17（tgz）；桌面安装与适配 2026-10-18 |
-| node | v24.19.0 |
+| plugin version | `1.0.1-rc57v2` |
+| 本地构建标识 | `rc57v2`（= `1.0.1-rc57` tag 本体 + issue #3 秒级意图到期唤醒修复，自 gitee tag 拉出的热修分支 `rc57v2`，不含 rc58 工作区任何未发布特性；主线修复随插件 rc59 发布后回归主线锁定） |
+| package 文件 | `desktop/vendor/koishi-plugin-hds-interlude-1.0.1-rc57v2.tgz`（随仓库自带；同目录附 .sha256。上源为插件主仓库 `plugins/hds-interlude/release/`，内容哈希一致） |
+| package SHA256 | `02c9fc085756828eca3321d8cad4ce983e5cc863720d3c287a4d23c6e3a169ed`（与 release/ 附带 .sha256 一致） |
+| bundle SHA256（package/lib/index.js） | `19d57a3926e733196061a50b497a8e33ba4e935bc6688425f80d917a6cd59c6e` |
+| 桌面安装位置校验 | `desktop/node_modules/koishi-plugin-hds-interlude/lib/index.js` 哈希一致（2026-10-28 验证；npm 安装，`verify:core` 六项全过） |
+| src 树指纹（src/**/*.ts 排序哈希） | `3e6c8f7b2c911111e1a7204d52459a0f5cdff427790ce9f925b1dd195b6dbed0`（方法：`find src -name '*.ts' | sort | xargs sha256sum | sha256sum`） |
+| plugin package.json SHA256 | `361cbc88690b41a681c510ea00576132181ee370320290bd59120db85a44d04a` |
+| desktop version | `0.0.1-m5`（issue #2 宿主热修 + rc57v2 插件同步批次） |
+| build timestamp | 2026-10-28（tgz 构建与安装验证同日） |
+| node | v24.22.1 |
 | electron | ^33.0.0 |
 
-> rc57 同步适配说明（2026-10-18，rc55→rc57）：桥接协议无版本变化（rc56 的群超时 `transport-timeout:` 前缀与贴纸/表情 ambiguous→pending 均为插件侧记账语义，消费的正是宿主自 rc53 起输出的 `ambiguous: true` 契约，桌面无需改动）。桌面侧本轮改动三处：①Mixer「费用优先」预设重标定到 rc57 默认基线（均衡档原写 `ctxWindow:45/recentEntryLimit:35` 自称"默认参数"，rc57 真实默认为 6/30——不修则一键"均衡"反把上下文窗口抬高 7.5 倍；现改 3/6/45 三档）；②mixer 参数描述同步（Context Entries"默认 35"→17、Max Msg Chars/Max Script Chars 补新默认 1500/1400、特化档位去掉 rc12 历史坐标）+ 新增「合约自动裁剪」开关（rc57 新键 `model.specializationAutoTrim`，默认开）；③依赖与哈希链更新（package.json → rc57.tgz，node_modules bundle 哈希 = tgz 内 bundle 哈希 = `d4d4e9c8…`）。rc56 的 Console 配置面重排（presetSync 前置、weather 移位重编号、假旋钮 hidden）与 rc57 默认值变化经内嵌 Console/继承语义自动生效，桌面无感；`presetSync` 分区不做桌面结构化 UI（沿用 m2 惯例，经 Console 编辑）。
+> rc57v2 同步适配说明（2026-10-28，m5 插件侧）：**rc57v2 = `1.0.1-rc57` tag 本体 + issue #3 修复**，自 gitee tag 拉出的热修分支（本地 `C:\dev\HDS-Interlude-rc57v2`，branch `rc57v2`，commit `0ae938c`），刻意不含 rc58 工作区的表情包采集/考据 Agent/密度自适应/HDSI Console 等未发布特性——typ0 需要的是最小热修面。内容：`scheduleNarrativeRetry` / `appendBrowserIntent` 创建即注册 `scheduleDueIntentWake`（issue #3 根因：15 秒重试实际等 sweep 5 分钟网格）；`scheduleNextSplitWake` 泛化为 `scheduleNextPendingWake`（类型白名单 + 严格未来）并接入 `cancelPendingOutgoingMessages` 与 `wakeDueIntents`（唤醒生命周期闭环：新消息取代计划外发不再误杀幸存重试唤醒、keep-earliest 空转后补排）。桥协议无变化（worker 内部调度逻辑，capability/protocol 均不动），桌面侧零适配代码。插件侧验证：rc57 基线 + 9 项新回归测试全绿（927 项 923 绿 + 4 跳过）、typecheck 0 错误、`require(bundle)` 冒烟 version=1.0.1-rc57v2；release 文档/HTML 向导按其仓库纪律对齐 rc57v2。桌面侧：vendor 替换 + `verify:core` 六项全过（tgz=sidecar=02c9fc08…、tgz bundle=安装产物=19d57a39…）。主线修复已并入插件 rc59（`C:\dev\HDS-Interlude\plugins\hds-interlude` 工作区），rc59 发布后桌面回归主线锁定。
+
+> m5 适配说明（2026-10-28，issue #2 宿主热修批）：插件配置面无新增适配。桌面侧修复 issue #2（周期同步把端点写成离线导致主动消息必失败）的根因链：①`config-compiler` token 注入条件从"键存在即跳过"改为"键缺失或值为空才注入"（向导/导入模板自带 `token: ''`，旧逻辑令 worker 无鉴权连桥被 1008 拒绝且 adapter 重连死锁，插件 5 分钟巡检随即把端点写成离线）；②向导模板删除 `token: ""` 占位行；③就绪检查新增「内部桥会话」分层项（`onebot.onlineAccounts()`，30 秒启动宽限）+ 新错误码 `BRIDGE_SESSION_OFFLINE` + degraded 一键重载；④运行中绑定账号留痕提示重载；⑤`WorkerRegistry.startedAt()` 支撑宽限判定。端到端实链验证：真实桥 + 真实 koishi/adapter-onebot，空 token canonical → 修复后 resolved 注入 → adapter `2(CONNECT)→1(ONLINE)`、`isBotOnlineStatus=true`。配套：端点连接真相的宿主权威推送设计（rc58+ 中期方案）备档 `docs/design/ENDPOINT_CONNECTION_TRUTH_DESIGN.md`。
+
+> rc57 同步适配说明（2026-10-18，rc55→rc57）：桥接协议无版本变化（rc56 的群超时 `transport-timeout:` 前缀与贴纸/表情 ambiguous→pending 均为插件侧记账语义，消费的正是宿主自 rc53 起输出的 `ambiguous: true` 契约，桌面无需改动）。桌面侧本轮改动三处：①Mixer「费用优先」预设重标定到 rc57 默认基线（均衡档原写 `ctxWindow:45/recentEntryLimit:35` 自称"默认参数"，rc57 真实默认为 6/30——不修则一键"均衡"反把上下文窗口抬高 7.5 倍；现改 3/6/45 三档）；②mixer 参数描述同步（Context Entries"默认 35"→17、Max Msg Chars/Max Script Chars 补新默认 1500/1400、特化档位去掉 rc12 历史坐标）+ 新增「合约自动裁剪」开关（rc57 新键 `model.specializationAutoTrim`，默认开）；③依赖与哈希链更新（package.json → rc57.tgz，node_modules bundle 哈希 = tgz 内 bundle 哈希 = `d4d4e9c8…`）。rc56 的 Console 配置面重排（presetSync 前置、weather 移位重编号、假旋钮 hidden）与 rc57 默认值变化经内嵌 Console/继承语义自动生效，桌面无感；`presetSync` 分区不做桌面结构化 UI（沿用 m2 惯例，经 Console 编辑）。**已被 rc57v2 取代为当前锁定（2026-10-28）。**
 
 > m4 适配说明（2026-10-19）：插件 artifact 仍锁定 rc57（双哈希不变）。桌面侧 m4 为主题系统、迁移与可用性批次：主题包作者指南 + JSON Schema（theme.schema.v3.json）+ 结构化诊断 + 导入预览与失败包可视化；「从 koishi.yml 导入 HDSI 配置」向导（模块选择/密钥迁移/账号转移与 Idle 标记/旧版 useForMain 自动修复）；就绪检查 needs-reload 改为真正的 unload+load 重载并新增运行相位检查；window.prompt 全量替换为宿主输入对话框（Electron 渲染层不渲染原生 prompt）；NOW 播放头几何 ResizeObserver 重测；账号卡网格 min-width 稳定化；诊断日志等级下拉化；时间尺度旋钮方向修正。仓库化：插件 tgz 入 `desktop/vendor/`（package.json 改 `file:./vendor/...`），AGPL-3.0 LICENSE 与 README 建立，文档归档 docs/design 与 docs/history。
 
@@ -91,4 +95,5 @@ mv koishi-plugin-hds-interlude-<version>.tgz release/<新构建标识>.tgz
 | `rc44` | `0f9a9dc390a00afa8eadbe4f463464be93bfa7f8565771a86a15db8474455be7` | 合并转发内图片读取修复（imageRefs → 视觉管线） |
 | `rc45` | `9af1b7c1c018f5110339f4ac1a1a4cddc8ac9c770a3b73af3c41c25b1c0244e6a` | 贴纸投递基址漏拷修复 + 14 配置缓存全量审计 |
 | `rc46` | `2371cfb4e40c5c8de75cbc9e1e69bc73da91c73d43658ab0686d02a2db0e74318` | 双时钟修复（session.timestamp 优先）+ 群消息离线补拉（offlineGroupCatchup） |
-| `rc57` | `d4d4e9c8a93aab0edc84361d6fd6474a12b8bdf122c23a47254541d2fe3e6842` | 当前桌面锁定；含 rc56 审查修复批（桌面桥接语义/Console 配置面重排/SHARE_SECTIONS 补 weather）与 rc57（Overlay 单场景演化修复、presetSync 前置、默认值基线对齐）。桌面同步适配见上"rc57 同步适配说明"（2026-10-18 安装验证） |
+| `rc57v2` | `19d57a3926e733196061a50b497a8e33ba4e935bc6688425f80d917a6cd59c6e` | **当前桌面锁定（m5）**；= rc57 tag 本体 + issue #3 秒级意图到期唤醒修复（gitee tag 拉出的热修分支，不含 rc58 工作区未发布特性）。适配说明见上"rc57v2 同步适配说明"（2026-10-28 安装验证，`verify:core` 六项全过） |
+| `rc57` | `d4d4e9c8a93aab0edc84361d6fd6474a12b8bdf122c23a47254541d2fe3e6842` | 已被 rc57v2 取代；含 rc56 审查修复批（桌面桥接语义/Console 配置面重排/SHARE_SECTIONS 补 weather）与 rc57（Overlay 单场景演化修复、presetSync 前置、默认值基线对齐）。桌面同步适配见上"rc57 同步适配说明"（2026-10-18 安装验证） |

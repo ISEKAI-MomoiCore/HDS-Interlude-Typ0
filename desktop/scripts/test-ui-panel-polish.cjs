@@ -4,7 +4,7 @@ const {pathToFileURL}=require('node:url')
 const puppeteer=require(require.resolve('puppeteer-core',{paths:[process.cwd(),'C:/dev/HDS-Interlude']}))
 const output=process.env.UI_TEST_SCREENSHOT_DIR||path.join(os.tmpdir(),'hdsi-panel-polish');fs.mkdirSync(output,{recursive:true})
 ;(async()=>{
- const browser=await puppeteer.launch({executablePath:process.env.UI_TEST_BROWSER||'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true})
+ const browser=await puppeteer.launch({executablePath:process.env.UI_TEST_BROWSER||'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:'shell',args:['--edge-skip-compat-layer-relaunch']})
  try {
   const page=await browser.newPage(),errors=[],metrics=[]
   page.on('pageerror',e=>errors.push(e.message))

@@ -10,13 +10,13 @@ const root = path.resolve(__dirname, '..')
 const buildDir = path.join(root, 'build')
 const svgPath = path.join(buildDir, 'twemoji-2615.svg')
 const pngDir = path.join(buildDir, 'icon-png')
-const SIZES = [16, 24, 32, 48, 64, 128, 256]
+const SIZES = [16, 24, 32, 48, 64, 128, 256, 512]
 const ICO_SIZES = [16, 24, 32, 48, 64, 256]
 
 ;(async () => {
   if (!fs.existsSync(svgPath)) throw new Error(`缺少 ${svgPath}（Twemoji 2615，CC-BY 4.0）`)
   fs.mkdirSync(pngDir, { recursive: true })
-  const browser = await puppeteer.launch({ executablePath: process.env.UI_TEST_BROWSER || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true })
+  const browser = await puppeteer.launch({ executablePath: process.env.UI_TEST_BROWSER || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: 'shell', args: ['--edge-skip-compat-layer-relaunch'] })
   try {
     const page = await browser.newPage()
     // file:// 子资源在 about:blank 页被拦——SVG 以 data URL 内联

@@ -82,6 +82,8 @@ let hostLock: HostLock | undefined
 let inFlightDeliveries = 0
 /** D4：Blind 模式下 Console 嵌入是原文绕过口——禁止新附件并销毁现存视图。 */
 let blindMode = false
+/** L15b：进入关停流程后，渠道缺失的投递按 unknown（而非 permanent-failed）结算。 */
+let quitting = false
 let themePacks: ThemePackStore
 let storiesRoot = path.join(dataRoot, 'stories')
 let stories: StoryManager
@@ -283,6 +285,29 @@ function buildFirstRunReadiness(metaId: string): FirstRunReadiness | { error: st
 
   const snow = lastSnowLumaDetection
   const hasOnebot = !configReadError && configSource.includes('adapter-onebot') && !configSource.includes('~adapter-onebot')
+  // 内部桥会话（issue #2 盲区）：worker 里的 adapter-onebot 必须连入内部桥并完成
+  // get_login_info 握手，插件的端点巡检才不会把渠道写成离线（否则主动/延迟消息
+  // 在每次入站后的下一个巡检周期必失败）。消息通路本身走 IPC 不经过这个 socket，
+  // 会话死了聊天照常——不在这里显式暴露，用户只会在"主动消息必失败"时才察觉。
+  const storyAccounts = accountRegistry.listByStory(metaId)
+  const bridgeSessionOnline = onebot.onlineAccounts().some(entry => entry.storyId === metaId)
+  const workerStartedAt = stories.workerRegistry.startedAt(metaId)
+  const BRIDGE_SESSION_WARMUP_MS = 30_000
+  const bridgeSessionWarming = handle.running && handle.bridgeReady
+    && workerStartedAt !== undefined && Date.now() - workerStartedAt < BRIDGE_SESSION_WARMUP_MS
+  const bridgeSessionBroken = hasOnebot && handle.running && handle.bridgeReady
+    && storyAccounts.length > 0 && !bridgeSessionOnline && !bridgeSessionWarming
+  const bridgeSessionLayer = !hasOnebot
+    ? { id: 'bridge-adapter-session', label: '内部桥会话', status: 'not-started' as const, summary: '未启用', detail: '启用 adapter-onebot 后，Worker 的适配器将连入内部桥。', checkedAt }
+    : !handle.running || !handle.bridgeReady
+      ? { id: 'bridge-adapter-session', label: '内部桥会话', status: 'not-started' as const, summary: 'Worker 未运行', detail: '加载 Worker 后，adapter-onebot 将连入内部桥并完成登录握手。', checkedAt }
+      : bridgeSessionOnline
+        ? { id: 'bridge-adapter-session', label: '内部桥会话', status: 'ready' as const, summary: 'adapter 已连入', detail: 'Worker 的 adapter-onebot 已连入内部桥并完成登录握手。', checkedAt }
+        : !storyAccounts.length
+          ? { id: 'bridge-adapter-session', label: '内部桥会话', status: 'not-started' as const, summary: '等待账号绑定', detail: '先在账号面板登记并绑定账号；绑定后重载 Worker，adapter 才会连入内部桥。', checkedAt, code: FIRST_RUN_ERROR_CODES.ACCOUNT_NOT_BOUND }
+          : bridgeSessionWarming
+            ? { id: 'bridge-adapter-session', label: '内部桥会话', status: 'checking' as const, summary: '连接握手中', detail: 'Worker 刚启动，正在等待 adapter-onebot 连入内部桥并完成登录握手。', checkedAt }
+            : { id: 'bridge-adapter-session', label: '内部桥会话', status: 'failed' as const, summary: '未连入内部桥', detail: 'Worker 的 adapter-onebot 未连入内部桥（鉴权失败或启动早于账号绑定）。插件端点巡检会判定渠道离线，主动/延迟消息将被拒绝（endpoint-offline）。重载 Worker 通常可恢复。', checkedAt, code: FIRST_RUN_ERROR_CODES.BRIDGE_SESSION_OFFLINE }
   const channelLayers = [
     { id: 'onebot-adapter', label: 'OneBot 适配器', status: hasOnebot ? 'ready' as const : 'blocked' as const,
       summary: hasOnebot ? '已启用' : '未启用', detail: hasOnebot ? '剧本配置中启用了 adapter-onebot。' : '在剧本配置中启用 OneBot 适配器。', checkedAt,
@@ -293,14 +318,16 @@ function buildFirstRunReadiness(metaId: string): FirstRunReadiness | { error: st
       summary: snow?.process === 'running' ? '进程运行中' : snow?.process === 'unknown' ? '状态未知' : '未运行', detail: '进程运行不代表 QQ 已登录或 OneBot 已可用。', checkedAt: snow?.checkedAt ?? checkedAt },
     { id: 'snowluma-webui', label: 'SnowLuma 管理界面', status: snow?.webui.reachable ? 'ready' as const : snow?.webui.status === 'unknown' ? 'degraded' as const : 'not-started' as const,
       summary: snow?.webui.reachable ? `可访问（:${snow.webui.port}）` : snow?.webui.status === 'unknown' ? '状态未知' : '不可访问', detail: '管理界面可访问不代表 OneBot 连接或 QQ 登录成功。', checkedAt: snow?.checkedAt ?? checkedAt },
+    bridgeSessionLayer,
   ]
   let channel: ReadinessItem
   if (configReadError) channel = readinessItem({ status: 'failed', summary: '渠道配置无法读取', detail: '无法读取剧本配置。', actions: ['configure'], checkedAt, code: FIRST_RUN_ERROR_CODES.MODEL_CONFIG_INVALID, layers: channelLayers })
+  else if (bridgeSessionBroken) channel = readinessItem({ status: 'degraded', summary: '内部桥会话未建立', detail: 'Worker 的 adapter-onebot 未连入内部桥——插件会把端点判定为离线，主动/延迟消息会被拒绝。通常重载 Worker 即可恢复。', actions: ['reload'], checkedAt, code: FIRST_RUN_ERROR_CODES.BRIDGE_SESSION_OFFLINE, layers: channelLayers })
   else channel = hasOnebot
     ? readinessItem({ status: 'ready', summary: 'OneBot 适配器已配置', detail: '剧本已启用 OneBot 渠道。SnowLuma 状态仅作为独立诊断信息。', actions: [], checkedAt, layers: channelLayers })
     : readinessItem({ status: 'blocked', summary: 'OneBot 渠道未配置', detail: '首次使用需要在剧本中启用 OneBot 适配器。', actions: ['configure'], checkedAt, code: FIRST_RUN_ERROR_CODES.ONEBOT_ADAPTER_NOT_CONFIGURED, layers: channelLayers })
 
-  const accounts = accountRegistry.listByStory(metaId)
+  const accounts = storyAccounts
   let account: ReadinessItem
   const accountLayers = accounts.flatMap(entry => {
     const key = 'onebot:' + entry.selfId
@@ -345,7 +372,10 @@ function buildFirstRunReadiness(metaId: string): FirstRunReadiness | { error: st
         status: 'degraded',
         summary: storyPhase === 'muted' ? '静音中' : '暂停中',
         detail: storyPhase === 'muted'
-          ? '观察模式：消息会触发叙事但不发送回复。'
+          // 审计 M7：文案对齐实现——宿主路由器把 muted 的用户消息同样排队进
+          // 收件箱（不触发叙事）；muted 与 paused 的差别在 worker 侧后台生活
+          // 是否继续（静音=继续写作但不发送用户消息）。
+          ? '静音：角色后台生活继续（写作但不发送用户消息）；用户消息排队进收件箱，切回运行后可回放。'
           : '入站消息只进入收件箱排队，不会触发回复；切回运行后可在收件箱回放。',
         actions: ['run'],
         checkedAt,
@@ -492,7 +522,13 @@ function createWindow() {
     backgroundColor: '#0f1216',
     title: 'HDS-Interlude Typ0',
     // ☕ 应用图标（Twemoji 2615，CC-BY 4.0）：开发态指 build/；打包态用 exe 内嵌图标
-    ...(existsSync(path.join(appRoot, 'build', 'icon.ico')) ? { icon: path.join(appRoot, 'build', 'icon.ico') } : {}),
+    // Linux 无 .ico 窗口图标支持——按平台选 png；两个都不在（源码树外运行等）
+    // 则回落 Electron 默认图标，不阻塞窗口创建。
+    ...(process.platform === 'win32' && existsSync(path.join(appRoot, 'build', 'icon.ico'))
+      ? { icon: path.join(appRoot, 'build', 'icon.ico') }
+      : process.platform !== 'win32' && existsSync(path.join(appRoot, 'build', 'icon-png', 'icon-256.png'))
+        ? { icon: path.join(appRoot, 'build', 'icon-png', 'icon-256.png') }
+        : {}),
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.js'),
       contextIsolation: true,
@@ -935,7 +971,11 @@ async function dispatchDeliveryOnce(storyId: string, payload: unknown) {
   let receipt: DeliveryReceipt
   const adapter = channels.get(record.transport, record)
   if (!adapter) {
-    receipt = { status: 'permanent-failed', error: `未安装或未连接 ${record.transport} 渠道适配器。` }
+    // 审计 L15b：关停排空窗内连接器已被清空——请求并未写出，判 unknown
+    //（worker 按 pending 记账）而不是 permanent-failed（会让插件放弃重试）。
+    receipt = quitting
+      ? { status: 'unknown', error: '应用正在退出且渠道连接已停止；投递结果不可知，不自动重发。' }
+      : { status: 'permanent-failed', error: `未安装或未连接 ${record.transport} 渠道适配器。` }
   } else {
     outbox.markSending(storyId, record.deliveryId)
     broadcast('story:delivery', outbox.get(storyId, record.deliveryId))
@@ -966,7 +1006,7 @@ function registerIpc() {
   // 注入，避免按值捕获与模块级状态失同步（见 ipc/context.ts 头注）。
   const ctx: IpcContext = {
     appRoot, dataRoot, storiesRoot,
-    stories, bindings, inbox, receipts, secrets, usage, onebot, accountRegistry,
+    stories, bindings, inbox, receipts, outbox, router, secrets, usage, onebot, accountRegistry,
     config, archives, logs, projections, consoleEmbed, themePacks, pluginInstaller,
     externalConnectionStates, externalAccountStates, workerConfigHashes,
     getWindow: () => window,
@@ -1095,7 +1135,8 @@ function buildStoryYml(payload: { id?: string, characterName?: string }) {
     '      selfId: "" # 在桌面账号面板登记后填写（QQ号）',
     '      protocol: ws',
     '      endpoint: ws://127.0.0.1:' + ONEBOT_BRIDGE_PORT + '/onebot/' + payload.id,
-    '      token: "" # 可选：桌面桥接 token',
+    // 桥接 token 是宿主运行参数（编译期注入 resolved 配置，见 config-compiler
+    // 空值注入注释）——canonical 不留 token: 键，避免空值占位被误当已配置。
     '  hds-interlude:m0:',
     '    model:',
     '      providers:',
@@ -1220,6 +1261,7 @@ app.whenReady().then(async () => {
 })
 
 app.on('window-all-closed', async () => {
+  quitting = true
   // typ-0：销毁 Console 嵌入视图、卸载全部剧本 worker（mute/pause 状态已写回各自 story.json）
   for (const handle of stories.list()) {
     consoleEmbed.dispose(handle.meta.id, partition => { try { session.fromPartition(partition).clearStorageData() } catch { /* best effort */ } })

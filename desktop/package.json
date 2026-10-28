@@ -1,6 +1,6 @@
 {
   "name": "hdsi-desktop",
-  "version": "0.0.1-m4",
+  "version": "0.0.1-m5",
   "private": true,
   "description": "HDS-Interlude Typ0 — HDSI 对话生活连续剧本化桌面宿主（每剧本一个 Koishi worker）",
   "main": "dist/main/main.js",
@@ -52,7 +52,7 @@
     "fflate": "0.8.3",
     "koishi": "^4.18.11",
     "koishi-plugin-adapter-onebot": "^6.9.4",
-    "koishi-plugin-hds-interlude": "file:./vendor/koishi-plugin-hds-interlude-1.0.1-rc57.tgz",
+    "koishi-plugin-hds-interlude": "file:./vendor/koishi-plugin-hds-interlude-1.0.1-rc57v2.tgz",
     "ws": "^8.21.3"
   },
   "devDependencies": {

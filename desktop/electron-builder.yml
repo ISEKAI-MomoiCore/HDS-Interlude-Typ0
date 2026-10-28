@@ -17,6 +17,7 @@ asar: false
 files:
   - dist/**
   - build/icon.ico
+  - build/icon-png/**
   - build/twemoji-2615.svg
   - package.json
   - "!**/*.map"
@@ -34,3 +35,22 @@ nsis:
   artifactName: HDS-Interlude-Typ0-Setup-${version}.${ext}
 portable:
   artifactName: HDS-Interlude-Typ0-Portable-${version}.${ext}
+
+# Linux（0.0.1-m5 实验性交叉构建：Windows 上可产出 AppImage + tar.gz）：
+#  - 运行时边界见 README/RELEASE-NOTES：密钥需桌面环境 keyring（safeStorage/
+#    libsecret），无 keyring 的无头环境密钥不可用（就绪检查有指引）；SnowLuma
+#    检测为 Windows 专属，Linux 上按 unknown 降级；插件安装需系统 PATH 有 npm。
+#  - 便携语义（数据随 exe）是 Windows portable 目标专属；AppImage 数据落在
+#    ~/.config/hdsi-desktop。
+linux:
+  icon: build/icon-png
+  category: Utility
+  artifactName: HDS-Interlude-Typ0-linux-${version}.${ext}
+  target:
+    - AppImage
+    - tar.gz
+appImage:
+  artifactName: HDS-Interlude-Typ0-AppImage-${version}.${ext}
+# AppImage 交叉构建需要创建符号链接（Windows 需开发者模式或管理员；本机无此
+# 权限，本地交付 tar.gz，AppImage 留给 CI/Linux 环境构建）。本地只打 tar.gz：
+#   npx electron-builder --linux tar.gz

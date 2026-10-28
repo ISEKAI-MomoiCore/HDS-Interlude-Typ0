@@ -23,6 +23,9 @@ export class InboxRepository {
       id: randomUUID(), traceId: event.traceId, event, reason, receivedAt: new Date().toISOString(), attempts: 0,
     }
     state.records.push(record)
+    // 审计 L15：收件箱上限——长时间静音/暂停的活跃账号不再无界增长
+    //（unassigned 已有同款 5000 上限；溢出丢最旧，回放语义保持"最近优先"）。
+    if (state.records.length > 5_000) state.records.splice(0, state.records.length - 5_000)
     this.write(storyId, state)
     return record
   }

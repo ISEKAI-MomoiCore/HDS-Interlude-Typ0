@@ -7,7 +7,7 @@ const puppeteer = require(require.resolve('puppeteer-core', { paths: [process.cw
 const PROVIDERS = [{ id: 'main', mode: 'openai-compatible', model: '$secret:primary-model', endpoint: '$secret:primary-endpoint', apiKey: '$secret:primary-key', temperature: 0.8, useForMain: true }]
 
 ;(async () => {
-  const browser = await puppeteer.launch({ executablePath: process.env.UI_TEST_BROWSER || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true })
+  const browser = await puppeteer.launch({ executablePath: process.env.UI_TEST_BROWSER || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: 'shell', args: ['--edge-skip-compat-layer-relaunch'] })
   try {
     const page = await browser.newPage()
     await page.setViewport({ width: 1440, height: 900 })

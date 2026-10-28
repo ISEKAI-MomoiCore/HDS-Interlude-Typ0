@@ -1,5 +1,5 @@
 import { dialog } from 'electron'
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { createStoryFolder } from '../stories'
@@ -30,6 +30,9 @@ export function registerImporterIpc(ctx: IpcContext) {
     const owner = getWindow()
     const picked = owner ? await dialog.showOpenDialog(owner, options) : await dialog.showOpenDialog(options)
     if (picked.canceled || !picked.filePaths[0]) return { cancelled: true }
+    // 审计 L7：先按字节核对上限再读取——选错大文件时不再先整读进内存。
+    const stat = statSync(picked.filePaths[0])
+    if (stat.size > MAX_SOURCE_BYTES) throw new Error(`koishi.yml 超过 1MB（实际 ${Math.round(stat.size / 1024)}KB），拒绝读取。`)
     const text = readFileSync(picked.filePaths[0], 'utf8')
     if (text.length > MAX_SOURCE_BYTES) throw new Error('koishi.yml 超过 1MB，拒绝读取。')
     const analyzed = analyzeKoishiYml(text)
@@ -97,6 +100,8 @@ export function registerImporterIpc(ctx: IpcContext) {
       broadcastStoriesChanged: () => broadcast('stories:changed', stories.list()),
       isStoryRunning: id => Boolean(stories.get(id)?.running),
       unloadStory: async id => { await stories.unload(id) },
+      // 审计 H2：导入失败回滚时，被转移卸载的运行中剧本按原运行态恢复。
+      loadStory: id => { try { stories.load(id) } catch (error) { broadcast('story:log', { storyId: id, line: '[import] 回滚恢复剧本加载失败：' + error }) } },
     }, session.parsed.source, { modules, ...(storyName ? { storyName } : {}) })
     session = null
     broadcast('story:log', { storyId: result.storyId, line: `[import] 已从插件版配置创建剧本「${result.storyName}」并导入所选模块。` })

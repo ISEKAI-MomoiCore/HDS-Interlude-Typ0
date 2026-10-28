@@ -10,8 +10,9 @@
  * 隐私边界：探测只产出表级计数与 story selfId（与配置导入的账号标识同级别，
  * 不含任何人设/消息内容）；明文数据永不进入日志与渲染层。
  */
-import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs'
 import path from 'node:path'
+import { tmpdir } from 'node:os'
 import { createRequire } from 'node:module'
 
 const nodeRequire = createRequire(__filename)
@@ -60,9 +61,19 @@ export async function probeKoishiDb(dbPath: string): Promise<KoishiDbProbe> {
   const walPath = dbPath + '-wal'
   try { probe.walActive = existsSync(walPath) && statSync(walPath).size > 0 } catch { probe.walActive = false }
   let db: any
+  // 审计 L11：sql.js 的 open 默认 READWRITE——对活跃 WAL 源库的首条查询会触发
+  // recovery/checkpoint 改写源实例的 -wal/-shm。探测改为复制三件套到临时目录
+  // 后打开副本，源库保持字节不动。
+  let probeDir: string | undefined
   try {
     const SQL = await loadSqlJs()
-    db = new SQL.Database(dbPath)
+    probeDir = mkdtempSync(path.join(tmpdir(), 'typ0-dbprobe-'))
+    const copyPath = path.join(probeDir, 'probe.db')
+    copyFileSync(dbPath, copyPath)
+    for (const suffix of ['-wal', '-shm']) {
+      try { if (existsSync(dbPath + suffix)) copyFileSync(dbPath + suffix, copyPath + suffix) } catch { /* WAL 快照尽力而为 */ }
+    }
+    db = new SQL.Database(copyPath)
     const scalar = (sql: string): number | undefined => {
       try { const result = db.exec(sql); const value = result[0]?.values?.[0]?.[0]; return typeof value === 'number' ? value : undefined } catch { return undefined }
     }
@@ -81,6 +92,7 @@ export async function probeKoishiDb(dbPath: string): Promise<KoishiDbProbe> {
     probe.error = error instanceof Error ? error.message : String(error)
   } finally {
     try { db?.close() } catch { /* best effort */ }
+    if (probeDir) { try { rmSync(probeDir, { recursive: true, force: true }) } catch { /* 临时目录尽力清理 */ } }
   }
   return probe
 }

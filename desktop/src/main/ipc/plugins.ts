@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import yaml from 'js-yaml'
 import { appendPlugin, createInstallProbe, readPluginPanel, removePlugin, togglePlugin, writePluginConfig } from '../runtime/plugin-panel'
+import { surgicalPluginUpdate } from '../runtime/config-surgery'
 import { marketDetail, readHostKoishiVersion, searchMarket } from '../runtime/plugin-market'
 import type { IpcContext } from './context'
 
@@ -125,11 +126,12 @@ export function registerPluginsIpc(ctx: IpcContext) {
     const def = CONFIG_SECTIONS[section]
     if (!def) throw new Error(`未知配置节：${section}。`)
     const file = path.join(handle.dir, 'koishi.yml')
-    const doc = yaml.load(readFileSync(file, 'utf8')) as any
+    const source = readFileSync(file, 'utf8')
+    const doc = yaml.load(source) as any
     if (!doc?.plugins) throw new Error('剧本配置缺少 plugins 段。')
     const hdsiKey = Object.keys(doc.plugins).find(key => /^hds-interlude:/.test(key)) ?? 'hds-interlude:m0'
-    doc.plugins[hdsiKey] ??= {}
-    const hdsi = doc.plugins[hdsiKey]
+    const before = (doc.plugins[hdsiKey] && typeof doc.plugins[hdsiKey] === 'object') ? JSON.parse(JSON.stringify(doc.plugins[hdsiKey])) : {}
+    const hdsi = JSON.parse(JSON.stringify(before))
     // 读模式
     if (data === undefined) return def.read(hdsi)
     // 写模式。P2 输入边界：yaml.dump 之前的尺寸门——渲染层 bug 传超大对象时
@@ -141,7 +143,8 @@ export function registerPluginsIpc(ctx: IpcContext) {
       throw error
     }
     def.write(hdsi, data)
-    config.save(handle.dir, yaml.dump(doc, { lineWidth: 160, noRefs: true }))
+    // 审计 M4：同 mixer——键行级手术，不再整档 dump 丢注释。
+    config.save(handle.dir, surgicalPluginUpdate(source, hdsiKey, before, hdsi))
     const needsReload = Boolean(handle.running)
     broadcast('story:log', { storyId: metaId, line: `[config] 已写入配置节 ${section}（canonical 已备份；${needsReload ? 'Worker 仍运行旧配置，等待用户确认重载' : 'Worker 当前未加载'}）。` })
     return { section, written: true, needsReload }

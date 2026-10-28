@@ -311,7 +311,7 @@ function findPluginBlockLine(source: string, rawKey: string, group?: string | nu
  *  改动移除，若降级到行级 first-match，操作（含删除）会落到异处的同名键上；
  *  此时抛错让用户刷新面板。undefined（旧调用形态/直连测试）保留 first-match
  *  兜底，维持既有行为。 */
-function locatePluginKey(source: string, rawKey: string, group?: string | null): { line: number, indent: number } | null {
+export function locatePluginKey(source: string, rawKey: string, group?: string | null): { line: number, indent: number } | null {
   const precise = findPluginBlockLine(source, rawKey, group)
   if (precise) return precise
   if (group !== undefined) {

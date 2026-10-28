@@ -98,7 +98,9 @@ interface Harness {
   savedYml: () => string
   registered: Array<{ storyId: string, selfId: string, endpoint: string, tokenAlias?: string }>
   bound: string[]
+  boundEntries: Array<{ accountKey: string, storyId: string }>
   unbound: string[]
+  loaded: string[]
   removedAccounts: unknown[]
   synced: string[]
   broadcasts: number
@@ -114,7 +116,9 @@ function makeHarness(): Harness {
   const secretsStore = new Map<string, string>()
   const registered: Harness['registered'] = []
   const bound: string[] = []
+  const boundEntries: Harness['boundEntries'] = []
   const unbound: string[] = []
+  const loaded: string[] = []
   const removedAccounts: unknown[] = []
   const synced: string[] = []
   const registryAccounts: Harness['registryAccounts'] = []
@@ -122,7 +126,7 @@ function makeHarness(): Harness {
   const unloaded: string[] = []
   const state: Harness = {
     storyDir: '',
-    secretsStore, registered, bound, unbound, removedAccounts, synced,
+    secretsStore, registered, bound, boundEntries, unbound, removedAccounts, synced, loaded,
     broadcasts: 0,
     failSave: false,
     registryAccounts, runningStories, unloaded,
@@ -163,13 +167,14 @@ function makeHarness(): Harness {
         findBySelfId: (selfId: string) => registryAccounts.find(entry => entry.selfId === selfId),
       } as unknown as AccountRegistry,
       bindings: {
-        bind: (entry: { accountKey: string }) => { bound.push(entry.accountKey) },
+        bind: (entry: { accountKey: string, storyId: string }) => { bound.push(entry.accountKey); boundEntries.push({ accountKey: entry.accountKey, storyId: entry.storyId }) },
         unbind: (accountKey: string) => { unbound.push(accountKey) },
       } as unknown as BindingRegistry,
       syncExternalConnector: storyId => { synced.push(storyId) },
       broadcastStoriesChanged: () => { state.broadcasts += 1 },
       isStoryRunning: id => runningStories.has(id),
       unloadStory: async id => { unloaded.push(id); runningStories.delete(id) },
+      loadStory: id => { loaded.push(id) },
     },
   }
   return state
@@ -309,9 +314,10 @@ test('execute：账号被其它剧本占用时自动转移（运行中先卸载�
   assert.ok(!harness.registryAccounts.some(entry => entry.storyId === 'old-story'), '旧剧本账号位空缺（Idle）')
   assert.ok(result.report.some(item => item.module === '账号' && item.detail.includes('old-story') && item.detail.includes('转移')), '报告注明转移')
 
-  // 失败路径：转移后保存失败 → 登记还原回旧剧本
+  // 失败路径：转移（含卸载运行中的旧剧本）后保存失败 → 登记/绑定/连接器/运行态全还原
   const harness2 = makeHarness()
   harness2.registryAccounts.push({ storyId: 'old-story', selfId: '10001', nickname: '旧名', externalUpstream: { endpoint: 'ws://127.0.0.1:3001/' }, channelKind: 'qq' })
+  harness2.runningStories.add('old-story')
   const analyzed2 = analyzeKoishiYml(SOURCE_YML)
   if (!analyzed2.ok) assert.fail()
   harness2.failSave = true
@@ -319,6 +325,11 @@ test('execute：账号被其它剧本占用时自动转移（运行中先卸载�
   const restored = harness2.registryAccounts.find(entry => entry.selfId === '10001')
   assert.equal(restored?.storyId, 'old-story', '回滚应把账号登记还原给原剧本')
   assert.equal(restored?.externalUpstream?.endpoint, 'ws://127.0.0.1:3001/')
+  // 审计 H2 回归：绑定必须重指回旧剧本（此前被整体 unbind，消息全部落入 unassigned）
+  const rebind = harness2.boundEntries.filter(entry => entry.accountKey === 'onebot:10001').pop()
+  assert.equal(rebind?.storyId, 'old-story', '回滚应把绑定还原给原剧本')
+  assert.ok(harness2.synced.includes('old-story'), '回滚应同步回收旧剧本的外部连接器')
+  assert.deepEqual(harness2.loaded, ['old-story'], '转移时被卸载的运行中剧本应按原运行态重载')
 })
 
 test('analyze：hds-interlude/adapter 嵌套在 group 分组下也能找到（真实插件版形态）', () => {

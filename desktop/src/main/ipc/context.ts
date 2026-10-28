@@ -17,6 +17,8 @@ import type { OneBotServerAdapter } from '../runtime/onebot-bridge'
 import type { AccountRegistry } from '../runtime/account-registry'
 import type { InboxRepository } from '../runtime/inbox-replay'
 import type { InboundReceiptLedger } from '../runtime/inbound-ledger'
+import type { DeliveryOutbox } from '../runtime/outbox'
+import type { MessageRouter } from '../runtime/message-router'
 import type { SecretStore } from '../runtime/secrets'
 import type { UsageAggregator } from '../runtime/usage-aggregator'
 import type { StoryConfigMediator } from '../runtime/config-mediator'
@@ -46,6 +48,8 @@ export interface IpcContext {
   bindings: BindingRegistry
   inbox: InboxRepository
   receipts: InboundReceiptLedger
+  outbox: DeliveryOutbox
+  router: MessageRouter
   secrets: SecretStore
   usage: UsageAggregator
   onebot: OneBotServerAdapter

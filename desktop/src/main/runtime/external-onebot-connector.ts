@@ -183,8 +183,12 @@ export class ExternalOneBotConnector implements ChannelAdapter {
       this.onlineListener?.(upstreamSelfId)
     } catch (error) {
       this.log(`外部 OneBot 身份验证失败：${String(error)}`)
-      const code: ExternalConnectionErrorCode = (error as NodeJS.ErrnoException)?.code === 'SELF_ID_MISMATCH' ? 'SELF_ID_MISMATCH' : 'ONEBOT_ENDPOINT_UNREACHABLE'
+      const mismatch = (error as NodeJS.ErrnoException)?.code === 'SELF_ID_MISMATCH'
+      const code: ExternalConnectionErrorCode = mismatch ? 'SELF_ID_MISMATCH' : 'ONEBOT_ENDPOINT_UNREACHABLE'
       this.errorListener?.(code, String(error).slice(0, 500))
+      // 审计 L15：端点固定服务某个账号——selfId 错配与 401/403 同为不可自愈
+      // 的配置错误，停止每 5 秒的无限重连刷屏（改绑正确账号后 reconcile 重启连接器）。
+      if (mismatch) this.stopped = true
       try { socket.close(1008, 'identity verification failed') } catch { /* close path reconnects */ }
     }
   }

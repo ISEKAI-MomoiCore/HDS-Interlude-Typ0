@@ -520,6 +520,26 @@ export class StoryManager extends EventEmitter {
     return this.workers.has(metaId) && this.bridgeReady.has(metaId) && !!lastSeen && Date.now() - lastSeen < 45_000
   }
 
+  /** 审计 H3：删除剧本后的终态遗忘——重建同 ID 剧本时，残留的运行态映射
+   *  会误报旧相位（getPhase 内存优先于 meta）与旧桥状态。unload 的 exit
+   *  路径清理 worker 生命周期项，这里按“剧本不复存在”的语义全量清空。 */
+  forgetRuntimeState(metaId: string) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(metaId)) return
+    this.workers.delete(metaId)
+    this.phases.delete(metaId)
+    this.bridgeProtocols.delete(metaId)
+    this.bridgeApiVersions.delete(metaId)
+    this.bridgeCapabilities.delete(metaId)
+    this.bridgeReady.delete(metaId)
+    this.lastSeenAt.delete(metaId)
+    this.compiledConfigs.get(metaId)?.cleanup()
+    this.compiledConfigs.delete(metaId)
+    this.stoppingWorkers.delete(metaId)
+    this.erroredWorkers.delete(metaId)
+    this.workerLogTail.delete(metaId)
+    this.workerRegistry.clear(metaId)
+  }
+
   /** 仅在 worker 已声明 bridge 协议后允许实时入站；没有 bridge 时路由器必须入收件箱。 */
   sendDesktopCommand(metaId: string, command: 'phase' | 'inbound' | 'replay-inbox' | 'snapshot' | 'timeline-range' | 'delivery-result' | 'semantic-analysis' | 'purge-range' | 'cursor-set', value: unknown): Promise<void> {
     const worker = this.workers.get(metaId)
@@ -598,6 +618,9 @@ export class StoryManager extends EventEmitter {
     } catch (error) {
       trace('send-failed', error)
       if (abortInFlight && inFlight) inFlight.delete(abortInFlight)
+      // 审计 L13：发送失败同样要了结 pending——否则监听器滞留至超时、超时
+      // reject 无人处理成 unhandledRejection，worker 退出中止也拿不到句柄。
+      abortInFlight?.(error instanceof Error ? error : new Error(String(error)))
       throw error
     }
     try {

@@ -72,6 +72,12 @@ export function registerAccountsIpc(ctx: IpcContext) {
       throw error
     }
     broadcast('story:log', { storyId: metaId, line: '[onebot] 账号绑定完成：' + accountKey + ' → ' + metaId + (accountRegistry.listByStory(metaId).length > 1 ? `（该剧本共 ${accountRegistry.listByStory(metaId).length} 个账号）` : '') })
+    // issue #2 边界：worker 在绑定前启动时，resolved 配置不含该账号的注入参数，
+    // adapter 连内部桥会被拒——消息收发照常（走 IPC），但插件端点巡检会判离线、
+    // 主动消息被拒。绑定不自动重载（避免打断运行中的叙事），在此留痕引导。
+    if (handle.running) {
+      broadcast('story:log', { storyId: metaId, line: '[onebot] 剧本正在运行：本次绑定在 Worker 重载后生效。若就绪检查提示「内部桥会话未建立」，请重载 Worker。' })
+    }
     await reconcileExternalConnector(metaId)
     return { bindings: bindings.list(), accounts: accountRegistry.list() }
   })

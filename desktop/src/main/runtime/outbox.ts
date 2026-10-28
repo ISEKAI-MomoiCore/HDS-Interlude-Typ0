@@ -21,6 +21,13 @@ export class DeliveryOutbox {
    * 持久化是跨重启 intentKey 去重的前提，不能合并防抖。history 维护
    * updatedAt 降序索引，查询不再全量重排序。 */
   private readonly states = new Map<string, OutboxFile>()
+  /** 审计 H3：剧本删除后重建同 ID 时读缓存必须失效——旧投递记录会以幽灵
+   *  形态出现在新剧本的 UI 与统计里。 */
+  invalidate(storyId: string) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(storyId)) return
+    this.states.delete(storyId)
+    this.sortedIndex.delete(storyId)
+  }
   private readonly sortedIndex = new Map<string, DeliveryRecord[]>()
 
   enqueue(storyId: string, delivery: DesktopDelivery) {

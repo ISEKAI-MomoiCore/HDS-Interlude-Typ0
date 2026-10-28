@@ -3,10 +3,10 @@
 > 聊天在幕前发生，生活在幕间继续——Typ0 让这段生活住进桌面：多剧本、多账号，一次点击开演。
 
 <p>
-  <img src="https://img.shields.io/badge/version-0.0.1--m4-c49e00" alt="当前版本 0.0.1-m4">
+  <img src="https://img.shields.io/badge/version-0.0.1--m5-c49e00" alt="当前版本 0.0.1-m5">
   <img src="https://img.shields.io/badge/Electron-33-47848f" alt="Electron 33">
   <img src="https://img.shields.io/badge/Koishi-4-47848f" alt="内嵌 Koishi 4">
-  <img src="https://img.shields.io/badge/plugin-rc57-c49e00" alt="HDSI 插件 1.0.1-rc57（哈希锁定）">
+  <img src="https://img.shields.io/badge/plugin-rc57v2-c49e00" alt="HDSI 插件 1.0.1-rc57v2（哈希锁定，rc57 热修分支）">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="许可证 AGPL-3.0">
 </p>
 
@@ -14,9 +14,9 @@
 
 交流群：421430402，群主24小时解答，欢迎来玩！
 
-HDS-Interlude Typ0（typ0）是 [HDS Interlude / 幕间系统](https://gitee.com/MomoiCore/HDS-Interlude)的**桌面宿主**：它把 Koishi 运行时与 `koishi-plugin-hds-interlude`（哈希锁定 `1.0.1-rc57`，随仓库 `desktop/vendor/` 自带）装进一个 Electron 应用，让"持续叙事、流动时间与角色生活"不再需要自行部署 Koishi 实例——新建剧本、绑定 QQ 账号、接入模型，都在一个桌面界面里完成。
+HDS-Interlude Typ0（typ0）是 [HDS Interlude / 幕间系统](https://gitee.com/MomoiCore/HDS-Interlude)的**桌面宿主**：它把 Koishi 运行时与 `koishi-plugin-hds-interlude`（哈希锁定 `1.0.1-rc57v2`（rc57 本体 + issue #3 热修分支），随仓库 `desktop/vendor/` 自带）装进一个 Electron 应用，让"持续叙事、流动时间与角色生活"不再需要自行部署 Koishi 实例——新建剧本、绑定 QQ 账号、接入模型，都在一个桌面界面里完成。
 
-当前版本：`0.0.1-m4`。插件 artifact 溯源（双 SHA-256 + 源码树指纹）见 [PROVENANCE.md](PROVENANCE.md)。
+当前版本：`0.0.1-m5`。插件 artifact 溯源（双 SHA-256 + 源码树指纹）见 [PROVENANCE.md](PROVENANCE.md)。
 
 ## 文档导航
 
@@ -70,7 +70,7 @@ flowchart TD
     H --> R{账号注册表 · onebot:selfId → 剧本}
     R -->|入站去重 · 账本| BR[内部桥 127.0.0.1:6709]
     BR --> W[剧本 worker · adapter-onebot 反连]
-    W --> P[hds-interlude rc57：主叙事一次写作]
+    W --> P[hds-interlude rc57v2：主叙事一次写作]
     P --> TL[时间线投影 · 事实 · 意图 · 剧本条目]
     P --> D[投递账本 · 分段 / 贴纸 / 动作]
     D --> BR
@@ -92,7 +92,7 @@ typ0 与 [SnowLuma](https://github.com/SnowLuma/SnowLuma) 是**进程级协作**
 ```bash
 git clone https://github.com/ISEKAI-MomoiCore/HDS-Interlude-Typ0.git
 cd HDS-Interlude-Typ0/desktop
-npm install        # koishi-plugin-hds-interlude@1.0.1-rc57 随 desktop/vendor/ 自带
+npm install        # koishi-plugin-hds-interlude@1.0.1-rc57v2 随 desktop/vendor/ 自带
 npm run build      # esbuild 编译主进程 + 渲染层
 npm start          # 启动应用
 ```
@@ -113,7 +113,7 @@ npm start          # 启动应用
 
 ## 使用要点
 
-- **相位**：`Space` 在 运行 / 静音 / 暂停 间循环。静音 = 观察模式（写作但不发送）；暂停 = 入站只入收件箱，可回放；
+- **相位**：`Space` 在 运行 / 静音 / 暂停 间循环。静音与暂停的用户消息都会排队进收件箱（切回运行后可回放）；两者的差别在 worker 侧——静音时角色的后台生活继续（写作但不发送用户消息），暂停时后台叙事同样停止；
 - **配置热改**：保存后运行中的 worker 仍用旧配置，就绪检查会亮「重载 Worker」，一键真正重载；
 - **备份与分支**：右键剧本可备份（一致性快照）与从时间线选点创建分支（fork 后截断）；删除剧本前自动备份进回收站；
 - **插件市场**：插件面板支持搜索（npmmirror）、受控安装（`--ignore-scripts`）与嵌入式官方配置页（@koishijs/plugin-config）。
@@ -141,7 +141,7 @@ npm run test:ui          # Studio UI（puppeteer-core + Edge headless；UI_TEST_
 │  ├─ src/main/                     # Electron 主进程（IPC 域模块 / 运行时服务）
 │  ├─ src/renderer/                 # Studio 渲染层（app.js / 主题 / 校验器）
 │  ├─ scripts/                      # 构建 + 全部测试
-│  └─ vendor/                       # 哈希锁定的 hds-interlude rc57 tgz
+│  └─ vendor/                       # 哈希锁定的 hds-interlude rc57v2 tgz
 └─ docs/                            # design/ 设计文档 · history/ 历史批次与同步日志
 ```
 

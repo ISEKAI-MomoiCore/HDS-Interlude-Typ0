@@ -30,6 +30,19 @@ export class MessageRouter extends EventEmitter {
     this.unassignedFile = path.join(dataRoot, 'unassigned-inbox.json')
   }
 
+  /** 审计 M6：回放窗口与实时路由的去重窗口——回放在途期间（peek 之后、
+   *  receipts.accept 之前），把待回放记录的幂等键登记进同一 inFlight 集：
+   *  上游对同一 rawMessageId 的重投在此窗口内按 ignored-duplicate 拒收，
+   *  回放失败（记录仍在收件箱、稍后重试）时由返回的释放函数归还窗口。 */
+  holdForReplay(storyId: string, events: DesktopInboundEvent[]): () => void {
+    const keys = events
+      .map(event => inboundIdempotencyKey(event))
+      .filter((key): key is string => !!key)
+      .map(key => `${storyId}:${key}`)
+    for (const key of keys) this.inFlight.add(key)
+    return () => { for (const key of keys) this.inFlight.delete(key) }
+  }
+
   async route(event: DesktopInboundEvent): Promise<RouteResult> {
     // The router is also used directly by tests, replay tools and older callers;
     // normalize here so no transport-specific entry point can lose correlation.

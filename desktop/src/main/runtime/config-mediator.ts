@@ -70,11 +70,30 @@ export class StoryConfigMediator {
     if (typeof source !== 'string' || !source.trim()) throw new Error('配置内容不能为空。')
     if (source.length > 1_000_000) throw new Error('配置文件超过 1 MB，拒绝写入。')
     if (/\0/.test(source)) throw new Error('配置中包含非法 NUL 字符。')
-    for (const sensitive of source.matchAll(SENSITIVE_SETTING)) {
-      const value = sensitive[1].trim()
-      const allowedEmpty = value === '' || value === "''" || value === '""' || value === 'null' || value === '~'
-      if (!allowedEmpty && !/^\$secret:[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(value)) {
-        throw new Error('敏感配置值必须使用 $secret:别名，不能把明文密钥写入 koishi.yml。')
+    // 审计 L10：块标量（mainPrompt: | 之类）正文里粘贴的「token: xxx」是普通
+    // 文案不是配置键——逐行扫描并跳过块标量区域，否则一次误报会把用户的所有
+    // 保存（YAML/结构化/mixer）完全堵死。SENSITIVE_LINE 为非全局实例，避开
+    // SENSITIVE_SETTING 的 lastIndex 共享状态。
+    const SENSITIVE_LINE = /^[ \t]*(?:-[ \t]+)?(?:api[-_]?key|access[-_]?token|refresh[-_]?token|auth[-_]?token|bot[-_]?token|client[-_]?secret|secret[-_]?key|authorization|password|passwd|token|secret)[ \t]*:[ \t]*([^#\r\n]*)/i
+    let inBlock = false
+    let blockIndent = 0
+    for (const line of source.split(/\r?\n/)) {
+      if (line.trim()) {
+        const indent = /^[ \t]*/.exec(line)![0].length
+        if (inBlock && indent > blockIndent) continue
+        inBlock = false
+        const sensitive = SENSITIVE_LINE.exec(line)
+        if (sensitive) {
+          const value = sensitive[1].trim()
+          const allowedEmpty = value === '' || value === "''" || value === '""' || value === 'null' || value === '~'
+          if (!allowedEmpty && !/^\$secret:[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(value)) {
+            throw new Error('敏感配置值必须使用 $secret:别名，不能把明文密钥写入 koishi.yml。')
+          }
+        }
+        if (/:[ \t]*(?:[|>][+-]?[0-9]*)(?:[ \t]+#.*)?$/.test(line)) {
+          inBlock = true
+          blockIndent = indent
+        }
       }
     }
   }

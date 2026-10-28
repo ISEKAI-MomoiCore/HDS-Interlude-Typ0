@@ -7,6 +7,7 @@ import { registerHandle } from './register'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import yaml from 'js-yaml'
+import { surgicalPluginUpdate } from '../runtime/config-surgery'
 import type { IpcContext } from './context'
 
 export function registerMixerIpc(ctx: IpcContext) {
@@ -114,22 +115,24 @@ export function registerMixerIpc(ctx: IpcContext) {
     if (!handle) throw new Error('剧本不存在。')
     const input = patch && typeof patch === 'object' ? patch as Record<string, unknown> : {}
     const file = path.join(handle.dir, 'koishi.yml')
-    const doc = yaml.load(readFileSync(file, 'utf8')) as any
+    const source = readFileSync(file, 'utf8')
+    const doc = yaml.load(source) as any
     if (!doc?.plugins || typeof doc.plugins !== 'object') throw new Error('剧本配置缺少 plugins 段。')
     const hdsiKey = Object.keys(doc.plugins).find(key => /^hds-interlude:/.test(key)) ?? 'hds-interlude:m0'
-    doc.plugins[hdsiKey] ??= {}
+    const before = (doc.plugins[hdsiKey] && typeof doc.plugins[hdsiKey] === 'object') ? JSON.parse(JSON.stringify(doc.plugins[hdsiKey])) : {}
+    const after = JSON.parse(JSON.stringify(before))
     const applied: Array<{ key: string, value: unknown }> = []
     for (const param of MIXER_PARAMS) {
       const raw = input[param.key]
       if (!Object.hasOwn(input, param.key) || raw === undefined || (raw === '' && param.type !== 'text')) continue
       if (raw === null) {
         // Undefined object properties are omitted by YAML; remove them explicitly so inheritance survives a reload.
-        param.apply(doc.plugins[hdsiKey], undefined)
+        param.apply(after, undefined)
         const prune = (node: any) => {
           if (!node || typeof node !== 'object') return
           for (const key of Object.keys(node)) { if (node[key] === undefined) delete node[key]; else prune(node[key]) }
         }
-        prune(doc.plugins[hdsiKey])
+        prune(after)
         applied.push({ key: param.key, value: null })
         continue
       }
@@ -138,19 +141,21 @@ export function registerMixerIpc(ctx: IpcContext) {
         if (!Number.isFinite(value) || value < (param.min ?? -Infinity) || value > (param.max ?? Infinity)) throw new Error(`参数 ${param.key} 超出范围 [${param.min ?? '-∞'}, ${param.max ?? '∞'}]。`)
         const decimals = Math.max(0, Math.ceil(-Math.log10(param.step ?? 1)))
         const clamped = param.integer ? Math.round(value) : Number((Math.round(value / (param.step ?? 1)) * (param.step ?? 1)).toFixed(decimals))
-        param.apply(doc.plugins[hdsiKey], clamped)
+        param.apply(after, clamped)
         applied.push({ key: param.key, value: clamped })
       } else {
         // Validate IPC values independently of renderer control type.
         if (param.type === 'toggle' && typeof raw !== 'boolean') throw new Error(param.key + ' 必须是布尔值。')
         if (param.type === 'select' && (typeof raw !== 'string' || !param.options?.includes(raw))) throw new Error(param.key + ' 不是有效选项。')
-        param.apply(doc.plugins[hdsiKey], raw)
+        param.apply(after, raw)
         applied.push({ key: param.key, value: raw })
       }
 
     }
     if (!applied.length) return { applied, reloaded: false, needsReload: false }
-    config.save(handle.dir, yaml.dump(doc, { lineWidth: 160, noRefs: true }))
+    // 审计 M4：键行级纯文本手术取代整档 yaml.dump——模板说明注释、用户手写
+    // 注释与锚点在结构化保存后逐字保留（plugin-panel 同款取舍）。
+    config.save(handle.dir, surgicalPluginUpdate(source, hdsiKey, before, after))
     const needsReload = Boolean(handle.running)
     broadcast('story:log', { storyId: metaId, line: `[mixer] 已写入 ${applied.map(item => `${item.key}=${item.value}`).join('、')}（canonical 已备份；${needsReload ? 'Worker 仍运行旧配置，等待用户确认重载' : 'Worker 当前未加载'}）。` })
     return { applied, reloaded: false, needsReload }

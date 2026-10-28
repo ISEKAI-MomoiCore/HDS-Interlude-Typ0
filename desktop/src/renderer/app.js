@@ -44,7 +44,9 @@ const logIds = new Set()
 const byId = id => document.getElementById(id)
 let configuredStoryId = null
 // P2-2：未绑定账号消息计数——此前进 unassigned-inbox.json 后完全不可见。
-let unassignedInboxCount = 0
+// 审计 L1：未分配计数改为「有待处理未分配消息的账号集合」——绑定成功后经
+// renderConnectView 的账号清单对账自动清除，重启归零不再永久残留。
+let unassignedAccounts = new Set()
 // 配置对话框脏标记：yaml 与结构化两个保存路径互斥，关闭前据此提示丢弃
 let configYamlDirty = false
 let configLoadSeq = 0
@@ -363,7 +365,10 @@ function appendLogItem(item, render) {
   // UI-33: 剥离 ANSI 终端控制序列（渲染层只显示纯文本）
   item.line = String(item.line || '').replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
   item.line = humanizeInboxReasons(item.line)
-  if (!logView.following && state.surface === 'logs') {
+  // 审计 M1：只有「实时到达」的新条目进暂停缓冲；hydrateLogs 重建主列表
+  // （render=false）必须直接落 state.logs——否则用户暂停跟随后应用筛选条件，
+  // 刚补齐的整页磁盘记录会被整体吞进 PAUSED 缓冲，主列表显示为空。
+  if (render && !logView.following && state.surface === 'logs') {
     logView.paused.push(item)
     logView.backlog = logView.paused.length
     if (logView.paused.length > 2_000) logView.paused.splice(0, logView.paused.length - 2_000)
@@ -418,7 +423,9 @@ let logHydratedFor = null
 let logOlderSeq = 0
 
 function visibleLogs() {
-  return state.logs.filter(item => !state.storyId || item.storyId === state.storyId || item.storyId === 'desktop')
+  // 审计 L5：'shell' 级错误（宿主投影读取失败/导入失败等）与 'desktop' 同为
+  // 全局可见——renderStatusLights 已放行，此处两处口径必须一致。
+  return state.logs.filter(item => !state.storyId || item.storyId === state.storyId || item.storyId === 'desktop' || item.storyId === 'shell')
 }
 
 function logQueryBase(extra = {}) {
@@ -605,6 +612,8 @@ function setupLogsSurface() {
   byId('logs-export').addEventListener('click', async () => {
     try {
       const result = await desktop.logs.export({ storyId: state.storyId || undefined, from: undefined, to: undefined })
+      // 审计 L6：用户在系统保存对话框点取消不是错误，不落"已导出 undefined"日志。
+      if (result?.canceled) return
       appendLog({ storyId: state.storyId || 'shell', line: `日志已导出（${result.records} 条，应用 Blind 规则）：${result.target}` })
     } catch (error) { appendLog({ storyId: state.storyId || 'shell', line: `导出失败：${error}` }) }
   })
@@ -836,7 +845,7 @@ async function renderConnectView() {
     : modelCheck?.status === 'ok' ? '模型连接可用，可以生成剧本。' : '模型 API Key 或 endpoint 未配置——没有模型她无法回复。'
   // 账号清单（步骤 3/4 共用）：提前拉取，渠道分流与接入门控都以它为准。
   let boundAccountsForGate = []
-  try { const listResult = await desktop.accounts.list(); boundAccountsForGate = Array.isArray(listResult) ? listResult : []; connectState.accountEntries = boundAccountsForGate } catch { boundAccountsForGate = [] }
+  try { const listResult = await desktop.accounts.list(); boundAccountsForGate = Array.isArray(listResult) ? listResult : []; connectState.accountEntries = boundAccountsForGate; const before = unassignedAccounts.size; for (const entry of boundAccountsForGate) unassignedAccounts.delete('onebot:' + entry.selfId); if (unassignedAccounts.size !== before) updateRunStateText() } catch { boundAccountsForGate = [] }
   // 3 消息渠道——P2-a（复核）：按已绑定账号的 channelKind 分流，QQ 通道才
   // 展示 SnowLuma 语义；微信/其他通道展示各自的接入说明，不再被 QQ 文案淹没。
   const boundChannelKinds = new Set(boundAccountsForGate.map(item => item.channelKind === 'wechat' || item.channelKind === 'other' ? item.channelKind : 'qq'))
@@ -1620,11 +1629,11 @@ function updateRunStateText() {
   if (story) {
     if (!story.running) text = '离线 · Worker 未加载'
     else if (!story.bridgeReady) { text = '启动中 · Worker 正在加载'; busy = true }
-    else if (story.meta.phase === 'muted') text = '静音中 · 继续生成但不发送'
+    else if (story.meta.phase === 'muted') text = '静音中 · 后台写作不发送，用户消息排队'
     else if (story.meta.phase === 'paused') text = '已暂停 · 新消息进入收件箱'
     else text = '运行中 · 正常收发与自动推进'
   }
-  el.textContent = unassignedInboxCount > 0 ? `${text} · 未分配 ${unassignedInboxCount}` : text
+  el.textContent = unassignedAccounts.size > 0 ? `${text} · 未分配 ${unassignedAccounts.size} 账号` : text
   el.classList.toggle('busy', busy)
   const phaseControl = document.querySelector('.transport-state')
   const phaseKey = !story?.running ? 'offline' : !story.bridgeReady ? 'booting' : (story.meta.phase || 'running')
@@ -1667,7 +1676,7 @@ async function updateStatusBar() {
       const accounts = await desktop.accounts.list()
       const entry = (Array.isArray(accounts) ? accounts : []).find(item => item.storyId === story.meta.id)
       if (!entry) { channelText = '通道：未绑定'; channelClass = 'status-cell warn' }
-      else if (entry.externalState === 'online') { channelText = `通道：${entry.channelKind === 'wechat' ? '微信' : 'QQ'} 在线`; channelClass = 'status-cell ok' }
+      else if (entry.externalState === 'online') { const kindName = entry.channelKind === 'wechat' ? '微信' : entry.channelKind === 'other' ? '其他 OneBot' : 'QQ'; channelText = `通道：${kindName} 在线`; channelClass = 'status-cell ok' }
       else if (entry.externalState === 'connecting') { channelText = '通道：连接中'; channelClass = 'status-cell warn' }
       else if (entry.externalState === 'configuration-error') { channelText = '通道：配置错误'; channelClass = 'status-cell err' }
       else { channelText = '通道：离线'; channelClass = 'status-cell err' }
@@ -2872,8 +2881,9 @@ async function createBranchFromSelection(entry) {
     appendLog({ storyId: story.meta.id, line: '分支已创建：' + result.id + '（默认暂停、未绑定账号）。源剧本数据完整保留。' })
     showToast('分支已创建，正在切换到它。', 'ok')
     await refresh()
-    state.storyId = result.id; persist()
-    await refresh()
+    // 审计 M3：切换必须走 selectStory 的全套重置——直接改 state.storyId 会把
+    // 源剧本的快照/检查条目/持久化选区/宿主投影残留给新分支。
+    selectStory(result.id)
   } catch (error) { reportUserError(story.meta.id, '创建分支失败：' + error) }
 }
 
@@ -3336,6 +3346,12 @@ function clearStudioViewTransitionState(view) {
 function setStudioView(view, options = {}) {
   const previous = state.browserView
   if (state.surface !== 'studio') setSurface('studio')
+  // 审计 L4：V7 工作台激活时浏览器面板（Mixer/Session 等）被 CSS 隐藏——
+  // Ctrl+K 搜索项与快捷键 3/4 指到这些视图时显式提示，不再静默无效果。
+  if (isV7Profile() && !['overview', 'timeline', 'facts', 'schedule'].includes(view)) {
+    showToast('V7 工作台布局不包含该视图——请在主题面板切回经典布局后使用。', 'info', 5000)
+    return Promise.resolve()
+  }
 
   // Always clear any stale morph state before changing the data attribute. The
   // layout CSS is intentionally transition-free, so this update is immediate.
@@ -4198,8 +4214,8 @@ desktop.onStoryExit(detail => {
 })
 // P2-2：未绑定账号的消息落地可见——toast + 状态栏计数，指引到连接页绑定。
 desktop.onRouterUnassigned(event => {
-  unassignedInboxCount += 1
   const account = event && typeof event === 'object' ? String(event.accountKey ?? event.selfId ?? '未知账号') : '未知账号'
+  if (event && typeof event === 'object' && event.accountKey) unassignedAccounts.add(String(event.accountKey))
   showToast(`收到发往未绑定账号 ${account} 的消息，已存入未分配收件箱——到连接页绑定该账号后即可接收。`, 'err', 8000)
   updateRunStateText()
 })
@@ -4314,8 +4330,12 @@ function openForkDialog(story, block) {
     appendLog({ storyId: story.meta.id, line: `正在从 entry ${entryId} 创建分支「${name}」…（整库复制，可能需要数秒）` })
     try {
       const result = await desktop.stories.forkBranch(story.meta.id, { name, forkPoint: { entryId } })
-      appendLog({ storyId: result?.id || story.meta.id, line: `分支已创建：${result?.name || name}（${result?.id || '未知 ID'}）。切换到它开始续写。` })
-      await refresh()
+      appendLog({ storyId: result?.id || story.meta.id, line: `分支已创建：${result?.name || name}（${result?.id || '未知 ID'}）。已切换到该分支。` })
+      showToast('分支已创建，已切换到它。', 'ok')
+      // 审计 L3：此前只刷新不切换，日志却宣称“切换到它开始续写”——现在真正
+      // 切换（selectStory 带全套状态重置）。
+      if (result?.id) selectStory(result.id)
+      else await refresh()
     } catch (error) { reportUserError(story.meta.id, `分支创建失败：${error}`) }
   })
   dialog.querySelector('input[name=name]')?.focus()

@@ -28,6 +28,13 @@ export class InboundReceiptLedger {
     return true
   }
 
+  /** 审计 H3：剧本删除后重建同 ID 时缓存必须失效——旧 key 残留会让新剧本的
+   *  消息在相位检查之前就被误判为重复（ignored-duplicate）静默丢弃。 */
+  invalidate(storyId: string) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(storyId)) return
+    this.cache.delete(storyId)
+  }
+
   private file(storyId: string) { return path.join(this.storiesRoot, storyId, 'data', 'inbound-receipts.json') }
   private read(storyId: string) {
     const cached = this.cache.get(storyId)

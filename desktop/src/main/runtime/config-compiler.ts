@@ -127,8 +127,16 @@ export class StoryConfigCompiler {
         // 三方审查P1: 已有 adapter 块的配置也注入宿主 token（与注入块同源）。
         // 审计：探测范围限定在 adapter 块内——全文件扫描会把其它插件任何层级的
         // token: 键误判为 adapter 已有 token，导致鉴权缺失、worker 连接被桥拒绝。
+        // 空值注入（issue #2 根因）：向导/导入模板自带 `token: ''`，若把"键存在"
+        // 当作"已配置"跳过注入，worker 会以无鉴权连桥被 1008 拒绝且 adapter
+        // 重连死锁（getActive=false 永不再试）——插件 5 分钟巡检随即把端点写成
+        // 离线，主动消息在每次入站后的下一个巡检周期必失败。因此键缺失或值为
+        // 空（裸空 / '' / "" / 行尾注释 / CRLF）都注入；用户手写的非空 token 保留，
+        // 若与桥 token 不符由就绪检查的内部桥会话项暴露。
         const adapterLines = lines.slice(head + 1, tail)
-        if (process.env.HDSI_ONEBOT_TOKEN && !adapterLines.some(l => /^\s+token:/.test(l))) setKey('token', process.env.HDSI_ONEBOT_TOKEN)
+        const tokenLine = adapterLines.find(l => /^\s+token:/.test(l))
+        const tokenValueEmpty = !tokenLine || /^\s+token:\s*(?:["']{2})?\s*(?:#[^\r\n]*)?\s*$/.test(tokenLine)
+        if (process.env.HDSI_ONEBOT_TOKEN && tokenValueEmpty) setKey('token', process.env.HDSI_ONEBOT_TOKEN)
         if (onebotEndpoint) setKey('endpoint', onebotEndpoint)
         resolvedText = lines.join('\n')
       } else {
